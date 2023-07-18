@@ -1,2 +1,2 @@
-# zen-vault-bridge-sample
-Zen vault bridge sample 
+# zen-vault-bridge-sdk
+Zen vault bridge sdk 
