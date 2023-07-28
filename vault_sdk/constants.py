@@ -1,0 +1,24 @@
+IBM_SECRETS_MANAGER = "ibm-secrets-manager"
+AWS = "aws-secrets-manager"
+AZURE = "azure-kv-vault"
+
+VAULT_TYPES = [IBM_SECRETS_MANAGER, AWS, AZURE]
+SECRET_TYPES = {
+    IBM_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key"],
+    AWS: [],
+    AZURE: []
+}
+
+API_KEY = "API_KEY"
+IAM_URL = "IAM_URL"
+VAULT_URL = "VAULT_URL"
+
+INTERNAL_SERVER_ERROR = "Internal server error"
+
+HTTP_SUCCESS_CODE = 200
+HTTP_BAD_REQUEST_CODE = 400
+HTTP_FORBIDDEN_CODE = 403
+HTTP_NOT_FOUND_CODE = 404
+HTTP_INTERNAL_SERVER_ERROR_CODE = 500
+
+RETRY_ERROR_CODE_LIST = [500, 502, 503, 504]
