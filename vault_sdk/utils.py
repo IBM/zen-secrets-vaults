@@ -15,7 +15,7 @@ from vault_sdk import caches
 SKIP_TLS_VERIFY = os.environ.get('SKIP_TLS_VERIFY', 'false')
 VAULT_REQUEST_TIMEOUT = int(os.environ.get('VAULT_REQUEST_TIMEOUT', 20))
 
-VAULT_REQUEST_RETRY_COUNT = int(os.environ.get('VAULT_REQUEST_RETRY_COUNT', 20))
+VAULT_REQUEST_RETRY_COUNT = int(os.environ.get('VAULT_REQUEST_RETRY_COUNT', 5))
 VAULT_REQUEST_RETRY_BACKOFF_FACTOR = 0.5
 
 

@@ -1,16 +1,12 @@
 #!/bin/sh
 
-python3 -m pip install --user virtualenv
-cd ./vault_sdk
-rm -rf venv
-python3 -m venv env
-source env/bin/activate
-python3 -m pip install -I Flask==2.3.2 gunicorn==21.2.0 requests==2.31.0
-
-# export DEBUG='true'
+# export LOGGING_LEVEL='INFO' # {DEBUG | INFO(default) | ERROR | CRITICAL}
 # export SKIP_TLS_VERIFY='false'
 # export VAULT_REQUEST_TIMEOUT=20
-# VAULT_REQUEST_RETRY_COUNT=5
+# export VAULT_REQUEST_RETRY_COUNT=5
 
-gunicorn --keyfile ../certs/key.pem --certfile ../certs/cert.pem  --bind 0.0.0.0:8080 wsgi:app
-deactivate
+export TLS_CERTITICATE_FILE_PATH="../certs/key.pem"
+export TLS_KEY_FILE_PATH="../certs/cert.pem"
+
+cd ./vault_sdk
+gunicorn --keyfile ${TLS_KEY_FILE_PATH} --certfile ${TLS_CERTITICATE_FILE_PATH}  --bind 0.0.0.0:8080 wsgi:app

@@ -5,7 +5,10 @@ import os
 from constants import *
 from bridge_lookup import CLASS_LOOKUP
 
-debug = os.environ.get('DEBUG', 'false')
+LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', 'INFO')
+if LOGGING_LEVEL not in LOGGING_LEVEL_LIST:
+    LOGGING_LEVEL = 'INFO'
+
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -17,7 +20,7 @@ dictConfig({
         'formatter': 'default'
     }},
     'root': {
-        'level': "DEBUG" if debug == "true" else 'INFO',
+        'level': LOGGING_LEVEL,
         'handlers': ['wsgi']
     }
 })
