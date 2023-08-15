@@ -21,7 +21,6 @@ VAULT_REQUEST_RETRY_BACKOFF_FACTOR = 0.5
 
 # @param {flask.request} request — incoming request
 # @param {logging} logging — python logging handler
-# @param {bool} is_bulk — is bulk operation
 #
 # @returns {string} vault type
 # @returns {array of string} vault auth content
@@ -29,23 +28,55 @@ VAULT_REQUEST_RETRY_BACKOFF_FACTOR = 0.5
 # @returns {number} status code
 def validateParams(request, logging):
     try:
-        secret_metadata = request.args.get('secret_metadata', "")
-        secret_type = request.args.get('secret_type', "")
-        vault_auth = request.headers.get('VAULT-AUTH', "")
+        secret_reference_metadata = request.args.get(SECRET_REFERENCE_METADATA, "")
+        secret_type = request.args.get(SECRET_TYPE, "")
+        vault_auth = request.headers.get(VAULT_AUTH_HEADER, "")
+        transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
 
-        if secret_metadata == "":
-            return None, None, None, buildErrorDict(f"Secret metadata is not found"), HTTP_BAD_REQUEST_CODE
+        if secret_reference_metadata == "":
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if secret_type == "":
-            return None, None, None, buildErrorDict(f"Secret type is not found"), HTTP_BAD_REQUEST_CODE
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret type is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
-            return None, None, None, buildErrorDict(f"Vault auth header is not found"), HTTP_BAD_REQUEST_CODE
+            target = {"name": VAULT_AUTH_HEADER, "type": "header"}
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
-        return secret_metadata, secret_type, vault_auth, None, None
+        return secret_reference_metadata, secret_type, vault_auth, transaction_id, None, None
     except Exception as err: 
         logging.error(f"Got error in function validateParams(): {str(err)}")
-        return None, None, None, buildErrorDict(str(err)), HTTP_INTERNAL_SERVER_ERROR_CODE
+        return None, None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+    
+
+# @param {flask.request} request — incoming request
+# @param {logging} logging — python logging handler
+#
+# @returns {string} vault type
+# @returns {array of string} vault auth content
+# @returns {string} error message if any
+# @returns {number} status code
+def validateParamsForBulkRequest(request, logging):
+    try:
+        secret_reference_metadata = request.args.get(SECRET_REFERENCE_METADATA, "")
+        vault_auth = request.headers.get(VAULT_AUTH_HEADER, "")
+        transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
+
+        if secret_reference_metadata == "":
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            return None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+        
+        if vault_auth == "":
+            target = {"name": VAULT_AUTH_HEADER, "type": "header"}
+            return None, None, None, buildErrorPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+        
+        return secret_reference_metadata, vault_auth, transaction_id, None, None
+    except Exception as err: 
+        logging.error(f"Got error in function validateParams(): {str(err)}")
+        return None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+
 
 
 # @param {logging} logging — python logging handler
@@ -54,19 +85,19 @@ def validateParams(request, logging):
 def getCachedToken(vault, logging):
     try:
         token_dict = caches.TOKEN[vault.vault_type]
-        apikey_entry = token_dict.get(vault.auth[API_KEY], None)
+        apikey_entry = token_dict.get(vault.auth["API_KEY"], None)
         if apikey_entry is None:
-            logging.debug(f"{vault.secret_urn}: Cached token not found")
+            logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token not found")
             return ""
 
-        if datetime.fromtimestamp(apikey_entry["expiration"]) + timedelta(0,60) > datetime.now():
+        if datetime.fromtimestamp(apikey_entry["expiration"]) - timedelta(0,60) > datetime.now():
             logging.debug(f"Cached token found and not expired")
             return apikey_entry["token"]
         
-        logging.debug(f"{vault.secret_urn}: Cached token has expired")
+        logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token has expired")
         return ""
     except Exception as err: 
-        logging.error(f"Got error in function getCachedToken(): {str(err)}")
+        logging.error(f"{vault.transaction_id} - {vault.secret_urn}: Got error in function getCachedToken(): {str(err)}")
         return ""
 
 
@@ -79,14 +110,55 @@ def buildErrorResponse(app, message, code, logging):
     dumped_message = json.dumps(message)
     logging.error(dumped_message)
     return app.response_class(
-            response=json.dumps(dumped_message),
+            response=dumped_message,
             status=code,
             mimetype='application/json'
         )
 
 
-def buildErrorDict(message):
-    return {"errors": message}
+# @param {string} message - error message 
+# @param {string} code — error code
+# @param {string} trace — transaction id
+# @param {int} status_code — status_code
+#
+# @returns {dict} - error dict
+def buildErrorPayload(message, code, trace, status_code, target=None):
+    return {
+        "errors": [
+            {
+                "code": code,
+                "message":message,
+                "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                "target": target,
+            }
+        ],
+        "status_code": status_code,
+        "trace": trace
+    }
+
+
+# @param {int} index - thread index
+# @param {vault object} vault — the vault object
+# @param {array} response_data — response_data data array
+# @param {logging} logging — python logging handler
+#
+# @returns None
+def bulkThreadFunction(index, vault, response_data, logging):
+    logging.debug(f"Thread - {index} of vault {vault.secret_urn} is running")
+    error, _ = vault.extractFromVaultAuthHeader(logging)
+    if error is not None:
+        error[SECRET_URN] = vault.secret_urn
+        response_data.append(error)
+        return
+
+    extracted_secret, error, _ = vault.processRequestGetSecret(logging, True)
+    if error is not None:
+        error[SECRET_URN] = vault.secret_urn
+        response_data.append(error)
+        return
+    
+    response_data.append(extracted_secret)
+    logging.debug(f"Thread - {index} of vault {vault.secret_urn} is finished")
 
 
 # @param {string} url - request url

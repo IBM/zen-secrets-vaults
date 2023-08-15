@@ -1,9 +1,11 @@
 from flask import Flask, request, json
-from utils import validateParams, buildErrorResponse, buildErrorDict
+from utils import validateParams, validateParamsForBulkRequest, buildErrorResponse, buildErrorPayload, bulkThreadFunction
 from logging.config import dictConfig
 import os
 from constants import *
 from bridge_lookup import CLASS_LOOKUP
+import base64
+import threading
 
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', 'INFO')
 if LOGGING_LEVEL not in LOGGING_LEVEL_LIST:
@@ -31,7 +33,7 @@ logging = app.logger
 
 # GET /health
 # RESPONSE "OK" HTTP_SUCCESS_CODE
-@app.route("/health", methods=["GET"])
+@app.route("/v2/health", methods=["GET"])
 def health():
     return json.dumps({"status": "OK"})
 
@@ -40,28 +42,35 @@ def health():
 # @url_param {string} vault_type - value from {ibm-secret-manager|aws-secrets-manager|azure-kv-vault}
 # @url_param {string} secret_urn 
 #
-# @query_param {string} secret_metadata - b64 encoded secret reference
+# @query_param {string} secret_reference_metadata - b64 encoded secret reference
 # @query_param {string} secret_type - value from {credentials|certificate|generic|key}
 #
-# @header {string} VAULT-AUTH - <IAM_URL=;VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
+# @header {string} Vault-Auth - <IAM_URL=;VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
+# @header {string} IBM-CPD-Transaction-ID - transaction id
 # 
 # SUCCESS RESPONSE {SECRET_JSON_STRING} HTTP_SUCCESS_CODE
-@app.route("/v2/vaults/<vault_type>/secrets/<secret_urn>", methods=["GET"])
+@app.route("/v2/vault-bridges/<vault_type>/secrets/<secret_urn>", methods=["GET"])
 def get_secret(vault_type, secret_urn):
 
     logging.debug(f"Receiving request for secret {secret_urn} with vault type {vault_type}")
 
-    secret_metadata, secret_type, auth_string, error, code = validateParams(request, logging)
+    secret_reference_metadata, secret_type, auth_string, transaction_id, error, code = validateParams(request, logging)
     if error is not None:
         return buildErrorResponse(app, error, code, logging)
     
     if vault_type not in VAULT_TYPES:
-        return buildErrorResponse(app, buildErrorDict(f"vault type {vault_type} is not supported"), HTTP_BAD_REQUEST_CODE, logging)
+        target = {"name": VAULT_TYPE, "type": "parameter"}
+        return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
     
     if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
-        return buildErrorResponse(app, buildErrorDict(f"secret type {secret_type} is not supported"), HTTP_BAD_REQUEST_CODE, logging)
+        target = {"name": SECRET_REFERENCE_METADATA, "type": "header"}
+        return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: secret type {secret_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
 
-    vault = CLASS_LOOKUP[vault_type](secret_metadata, secret_type, secret_urn, auth_string)
+    try:
+        vault = CLASS_LOOKUP[vault_type](base64.b64decode(secret_reference_metadata).decode('utf-8'), secret_type, secret_urn, auth_string, transaction_id)
+    except Exception as err: 
+        logging.error(f"{transaction_id} - {secret_urn}: Got error: {str(err)}")
+        return buildErrorResponse(app, buildErrorPayload(str(err), E_1000, transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE, logging)
     
     error, code = vault.extractFromVaultAuthHeader(logging)
     if error is not None:
@@ -71,5 +80,65 @@ def get_secret(vault_type, secret_urn):
     if error is not None:
         return buildErrorResponse(app, error, code, logging)
 
-    logging.debug(f"Sending response for secret {secret_urn} with vault type {vault_type}")
+    logging.debug(f"Sending response for transaction {transaction_id} and secret {secret_urn} with vault type {vault_type}")
     return json.dumps(extracted_secret)
+
+
+# GET /v2/vaults/<vault_type>/secrets/bulk
+# @url_param {string} vault_type - value from {ibm-secret-manager|aws-secrets-manager|azure-kv-vault}
+#
+# @query_param {string} secret_reference_metadata - b64 encoded secret references <secret_reference_metadata...> Note: value need to be separated by semicolon
+#
+# @header {string} Vault-Auth - <IAM_URL=;VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
+# @header {string} IBM-CPD-Transaction-ID - transaction id
+# 
+# SUCCESS RESPONSE {SECRET_JSON_STRING} 200
+@app.route("/v2/vault-bridges/<vault_type>/secrets/bulk", methods=["GET"])
+def get_bulk_secret(vault_type):
+
+    secret_reference_metadata, auth_string, transaction_id, error, code = validateParamsForBulkRequest(request, logging)
+    if error is not None:
+        return buildErrorResponse(app, error, code, logging)
+    
+    if vault_type not in VAULT_TYPES:
+        target = {"name": VAULT_TYPE, "type": "parameter"}
+        return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
+    
+    try:
+        secret_reference_metadata_list = json.loads(base64.b64decode(secret_reference_metadata).decode('utf-8'))
+    except Exception as err: 
+        logging.error(f"{transaction_id} - {secret_urn}: Got error: {str(err)}")
+        return buildErrorResponse(app, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE, logging)
+    
+    response_data = []
+    index = 0
+    threads = list()
+    while index < len(secret_reference_metadata_list):
+        secret_urn = secret_reference_metadata_list[index].get(SECRET_URN, "")
+        secret_id = secret_reference_metadata_list[index].get(SECRET_ID, "")
+        secret_type = secret_reference_metadata_list[index].get(SECRET_TYPE, "")
+
+        if secret_urn == "" or secret_id == "" or secret_type == "":
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: secret type, secret id, and secret urn cannot be empty", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
+
+        if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "header"}
+            return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: secret type {secret_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
+
+        vault = CLASS_LOOKUP[vault_type](secret_id, secret_type, secret_urn, auth_string, transaction_id)
+
+        # have separate thread to handle the request
+        t = threading.Thread(target=bulkThreadFunction, args=(index, vault, response_data, logging))
+        threads.append(t)
+        t.start()
+        index=index+1
+    
+    # waiting for thread to be finished
+    for index, thread in enumerate(threads):
+        logging.debug(f"Main: before joining thread {index}")
+        thread.join()
+        logging.debug(f"Main: thread {index} done")
+
+    logging.debug(f"Sending response for the bulk request with secret {transaction_id} with vault type {vault_type}")
+    return json.dumps(response_data)
