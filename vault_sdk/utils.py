@@ -34,11 +34,11 @@ def validateParams(request, logging):
         transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
 
         if secret_reference_metadata == "":
-            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
             return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if secret_type == "":
-            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
             return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret type is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
@@ -65,7 +65,7 @@ def validateParamsForBulkRequest(request, logging):
         transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
 
         if secret_reference_metadata == "":
-            target = {"name": SECRET_REFERENCE_METADATA, "type": "parameter"}
+            target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
             return None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
