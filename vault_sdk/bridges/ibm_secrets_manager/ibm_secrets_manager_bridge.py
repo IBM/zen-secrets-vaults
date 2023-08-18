@@ -24,7 +24,59 @@ class IBMSecretManager(object):
         self.secret_urn = secret_urn
         self.auth_string = auth_string
         self.transaction_id = transaction_id
+        self.secret_id = ""
 
+
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {string} error message if any
+    #
+    # this function extract secret_id from request query param secret_reference_metadata
+    def extractSecretReferenceMetadata(self, logging):
+        try:
+            decoded_secret_metadata = json.loads(base64.b64decode(self.secret_reference_metadata).decode('utf-8'))
+            secret_id = decoded_secret_metadata.get(SECRET_ID, "")
+
+            if secret_id == "":
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id}: {ERROR_SECRET_ID_NOT_FOUND}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+            
+            self.secret_id = secret_id
+            return None, None
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error: {str(err)}")
+            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+        
+
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {string} error message if any
+    #
+    # this function extract secret_id, secret_urn, and secret_type from request query param secret_reference_metadata
+    def extractSecretReferenceMetadataBulk(self, logging):
+        try:
+            secret_urn = self.secret_reference_metadata.get(SECRET_URN, "")
+            secret_id = self.secret_reference_metadata.get(SECRET_ID, "")
+            secret_type = self.secret_reference_metadata.get(SECRET_TYPE, "")
+
+            if secret_urn == "" or secret_id == "" or secret_type == "":
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type, secret id, and secret urn cannot be empty", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type {secret_type} is not supported", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            self.secret_id = secret_id
+            self.secret_urn = secret_urn
+            self.secret_type = secret_type
+
+            return None, None
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error: {str(err)}")
+            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+    
+    
 
     # @param {logging} logging — python logging handler
     #
@@ -139,7 +191,7 @@ class IBMSecretManager(object):
                 "Accept": "application/json"
             }
 
-            response = sendGetRequest(self.auth[VAULT_URL]+"/"+self.secret_reference_metadata, headers, None, logging)
+            response = sendGetRequest(self.auth[VAULT_URL]+"/"+self.secret_id, headers, None, logging)
             if response.status_code != HTTP_SUCCESS_CODE:
                 logging.error(f"Error {response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
                 return None, buildErrorPayload("Error while establishing connection with Vault providers", E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
