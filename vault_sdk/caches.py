@@ -20,5 +20,5 @@ from constants import *
 TOKEN = {
     IBM_SECRETS_MANAGER: {}, 
     AWS: {}, 
-    AZURE: {}
+    AZURE_KEY_VAULT: {}
 }
