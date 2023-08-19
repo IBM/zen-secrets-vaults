@@ -1,3 +1,4 @@
+
 import requests
 from datetime import datetime, timedelta
 import os
@@ -84,15 +85,19 @@ def validateParamsForBulkRequest(request, logging):
 # @returns {string} access token
 def getCachedToken(vault, logging):
     try:
+
         token_dict = caches.TOKEN[vault.vault_type]
-        apikey_entry = token_dict.get(vault.auth["API_KEY"], None)
-        if apikey_entry is None:
-            logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token not found")
+        if vault.vault_type == IBM_SECRETS_MANAGER:
+            cachekey_entry = token_dict.get(vault.auth["API_KEY"], None)
+        elif vault.vault_type == AZURE_KEY_VAULT:
+            cachekey_entry = token_dict.get(vault.auth["CLIENT_ID"], None)
+        if cachekey_entry is None:
+            logging.debug(f"{vault.transaction_id}: Cached token not found")
             return ""
 
-        if datetime.fromtimestamp(apikey_entry["expiration"]) - timedelta(0,60) > datetime.now():
+        if datetime.fromtimestamp(cachekey_entry["expiration"]) - timedelta(0,60) > datetime.now():
             logging.debug(f"Cached token found and not expired")
-            return apikey_entry["token"]
+            return cachekey_entry["token"]
         
         logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token has expired")
         return ""

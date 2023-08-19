@@ -1,0 +1,8 @@
+CLIENT_ID = "CLIENT_ID"
+CLIENT_SECRET = "CLIENT_SECRET"
+SECRET_NAME = "secret_name"
+TENANT_ID = "TENANT_ID"
+INVALID_JSON_FORMAT_ERROR = "Invalid JSON format for secret_value"
+ERROR_SECRET_NAME_NOT_FOUND = "Secret name is not found from secret_reference_metadata"
+TOKEN_ERROR = "Token is not returned from Azure Key Vault"
+UNSUPPORTED_TYPE_PKCS12 = "Azure key vault bridge does not support certificates with content type x-pkcs12"
