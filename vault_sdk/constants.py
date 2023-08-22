@@ -21,6 +21,7 @@ SECRET_REFERENCE_METADATA = "secret_reference_metadata"
 VAULT_TYPE = "vault_type"
 SECRET_URN = "secret_urn"
 SECRET_TYPE = "secret_type"
+VALIDATE = "validate"
 VAULT_AUTH_HEADER = "Vault-Auth"
 TRANSACTION_ID_HEADER = "IBM-CPD-Transaction-ID"
 
