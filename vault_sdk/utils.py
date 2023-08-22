@@ -31,26 +31,25 @@ def validateParams(request, logging):
     try:
         secret_reference_metadata = request.args.get(SECRET_REFERENCE_METADATA, "")
         secret_type = request.args.get(SECRET_TYPE, "")
-        is_validate = request.args.get(VALIDATE, "false")
         vault_auth = request.headers.get(VAULT_AUTH_HEADER, "")
         transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
 
         if secret_reference_metadata == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-            return None, None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret metadata is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if secret_type == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-            return None, None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret type is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Secret type is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
             target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-            return None, None, None, None, None, buildErrorPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+            return None, None, None, None, buildErrorPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
-        return secret_reference_metadata, secret_type, is_validate, vault_auth, transaction_id, None, None
+        return secret_reference_metadata, secret_type, vault_auth, transaction_id, None, None
     except Exception as err: 
-        logging.error(f"Got error in function validateParams(): {str(err)}")
-        return None, None, None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+        logging.error(f"validateParams() Got error in function validateParams(): {str(err)}")
+        return None, None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
     
 
 # @param {flask.request} request — incoming request
@@ -76,7 +75,7 @@ def validateParamsForBulkRequest(request, logging):
         
         return secret_reference_metadata, vault_auth, transaction_id, None, None
     except Exception as err: 
-        logging.error(f"Got error in function validateParams(): {str(err)}")
+        logging.error(f"validateParamsForBulkRequest() Got error in function validateParams(): {str(err)}")
         return None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -103,7 +102,7 @@ def getCachedToken(vault, logging):
         logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token has expired")
         return ""
     except Exception as err: 
-        logging.error(f"{vault.transaction_id} - {vault.secret_urn}: Got error in function getCachedToken(): {str(err)}")
+        logging.error(f"{vault.transaction_id} - {vault.secret_urn}: getCachedToken() Got error in function getCachedToken(): {str(err)}")
         return ""
 
 
