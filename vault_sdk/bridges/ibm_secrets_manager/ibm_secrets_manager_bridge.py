@@ -17,13 +17,14 @@ from vault_sdk.constants import *
 from vault_sdk.utils import getCachedToken, sendGetRequest, sendPostRequest, buildErrorPayload
 
 class IBMSecretManager(object):
-    def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id):
+    def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id, is_validate="false"):
         self.vault_type = IBM_SECRETS_MANAGER
         self.secret_reference_metadata = secret_reference_metadata
         self.secret_type = secret_type
         self.secret_urn = secret_urn
         self.auth_string = auth_string
         self.transaction_id = transaction_id
+        self.is_validate = is_validate
         self.secret_id = ""
 
 
@@ -218,7 +219,10 @@ class IBMSecretManager(object):
             response_secret_data = {}
             get_secret = False
 
-            if self.secret_type == "credentials":
+            if self.is_validate == "true":
+                response_secret_data = extracted_secret
+                get_secret = True
+            elif self.secret_type == "credentials":
                 if ibm_secret_type != "username_password":
                     return None, buildErrorPayload(self.extractErrorString(self.secret_type, ibm_secret_type), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
                 username = extracted_secret.get("username", "")
