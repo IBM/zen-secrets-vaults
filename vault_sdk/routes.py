@@ -55,7 +55,7 @@ def get_secret(vault_type, secret_urn):
 
     logging.debug(f"Receiving request for secret {secret_urn} with vault type {vault_type}")
 
-    secret_reference_metadata, secret_type, is_validate, auth_string, transaction_id, error, code = validateParams(request, logging)
+    secret_reference_metadata, secret_type, auth_string, transaction_id, error, code = validateParams(request, logging)
     if error is not None:
         return buildErrorResponse(app, error, code, logging)
     
@@ -67,7 +67,7 @@ def get_secret(vault_type, secret_urn):
         target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
         return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: secret type {secret_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
 
-    vault = CLASS_LOOKUP[vault_type](secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id, is_validate)
+    vault = CLASS_LOOKUP[vault_type](secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id)
     error, code = vault.extractFromVaultAuthHeader(logging)
     if error is not None:
         return buildErrorResponse(app, error, code, logging)
@@ -107,7 +107,7 @@ def get_bulk_secret(vault_type):
     try:
         secret_reference_metadata_list = json.loads(base64.b64decode(secret_reference_metadata).decode('utf-8'))
     except Exception as err: 
-        logging.error(f"{transaction_id}: Got error: {str(err)}")
+        logging.error(f"{transaction_id}: get_bulk_secret() Got error: {str(err)}")
         return buildErrorResponse(app, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE, logging)
     
     response_data = []
