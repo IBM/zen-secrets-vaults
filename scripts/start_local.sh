@@ -9,4 +9,6 @@ export TLS_CERTITICATE_FILE_PATH="../certs/key.pem"
 export TLS_KEY_FILE_PATH="../certs/cert.pem"
 
 cd ./vault_sdk
-gunicorn --keyfile ${TLS_KEY_FILE_PATH} --certfile ${TLS_CERTITICATE_FILE_PATH}  --bind 0.0.0.0:8080 wsgi:app
+source env/bin/activate
+gunicorn --keyfile ${TLS_KEY_FILE_PATH} --certfile ${TLS_CERTITICATE_FILE_PATH}  --bind 0.0.0.0:8443 wsgi:app
+cd ../

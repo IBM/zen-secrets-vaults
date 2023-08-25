@@ -1,4 +1,4 @@
-API_KEY = "API_KEY"
+API_KEY = "api_key"
 SECRET_ID = "secret_id"
 
 # error message

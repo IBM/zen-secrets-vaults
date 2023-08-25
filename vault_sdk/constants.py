@@ -2,7 +2,7 @@ LOGGING_LEVEL_LIST = ["DEBUG", "INFO", "ERROR", "CRITICAL"]
 
 
 # vault constants
-IBM_SECRETS_MANAGER = "ibm-secrets-manager"
+IBM_SECRETS_MANAGER = "ibm-cloud-secrets-manager"
 AWS = "aws-secrets-manager"
 AZURE_KEY_VAULT = "azure-key-vault"
 
@@ -14,8 +14,8 @@ SECRET_TYPES = {
 }
 
 # requests constants
-IAM_URL = "IAM_URL"
-VAULT_URL = "VAULT_URL"
+IAM_URL = "iam_url"
+VAULT_URL = "vault_url"
 
 SECRET_REFERENCE_METADATA = "secret_reference_metadata"
 VAULT_TYPE = "vault_type"

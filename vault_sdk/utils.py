@@ -88,7 +88,7 @@ def getCachedToken(vault, logging):
 
         token_dict = caches.TOKEN[vault.vault_type]
         if vault.vault_type == IBM_SECRETS_MANAGER:
-            cachekey_entry = token_dict.get(vault.auth["API_KEY"], None)
+            cachekey_entry = token_dict.get(vault.auth["api_key"], None)
         elif vault.vault_type == AZURE_KEY_VAULT:
             cachekey_entry = token_dict.get(vault.auth["CLIENT_ID"], None)
         if cachekey_entry is None:
