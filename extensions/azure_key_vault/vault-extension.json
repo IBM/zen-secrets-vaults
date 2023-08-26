@@ -1,0 +1,101 @@
+{
+    "extension_point_id": "zen_vault_type_config",
+    "extension_name": "azure-key-vault",
+    "display_name": "Azure Key Vault",
+    "meta": {},
+    "details": {
+        "category": "bridge",
+        "supported_secret_types": [
+            {
+                "secret_type": "credentials",
+                "label": "Username and password"
+            },
+            {
+                "secret_type": "key",
+                "label": "Key"
+            },
+            {
+                "secret_type": "generic",
+                "label": "Custom"
+            },
+            {
+                "secret_type": "token",
+                "label": "Token"
+            },
+            {
+                "secret_type": "certificate",
+                "label": "SSL certificate"
+            }
+        ],
+        "bridge_url": "https://vault-bridge-hashicorp.cpd-instance.svc.cluster.local",
+        "label": "Azure Key Vault",
+        "description": "Azure Key Vault",
+        "json_schema": {
+            "type": "object",
+            "required": [
+                "iam_url",
+                "bridge_url",
+                "vault_url",
+                "tenant_id",
+                "client_id",
+                "client_secret"
+            ],
+            "optional": [],
+            "credentials": [
+                "client_id",
+                "client_secret"
+            ],
+            "properties": {
+                "iam_url": {
+                    "type": "string",
+                    "label": "IAM URL",
+                    "placeholder": "Azure IAM URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 1
+                },
+                "bridge_url": {
+                    "type": "string",
+                    "label": "Bridge URL",
+                    "placeholder": "Vault bridge URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 2
+                },
+                "vault_url": {
+                    "type": "string",
+                    "label": "Vault URL",
+                    "placeholder": "Azure key vault URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 2
+                },
+                "tenant_id": {
+                    "type": "string",
+                    "label": "Tenant ID",
+                    "placeholder": "Azure tenant ID",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 3
+                },
+                "client_id": {
+                    "type": "string",
+                    "label": "Client ID",
+                    "placeholder": "Azure client ID",
+                    "UIcomponent": "TextArea",
+                    "alignment": "authentication_section",
+                    "sequence": 1
+                },
+                "client_secret": {
+                    "type": "string",
+                    "label": "Client Secret",
+                    "placeholder": "Azure client secret",
+                    "UIcomponent": "TextArea",
+                    "password": true,
+                    "alignment": "authentication_section",
+                    "sequence": 2
+                }
+            }
+        }
+    }
+}
