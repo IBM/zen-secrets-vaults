@@ -8,10 +8,10 @@ import sys
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
+parent = os.path.dirname(parent)
 sys.path.append(parent)
 
-from vault_sdk.constants import *
-from vault_sdk import caches
+from vault_sdk.bridges_common.constants import *
 
 SKIP_TLS_VERIFY = os.environ.get('SKIP_TLS_VERIFY', 'false')
 VAULT_REQUEST_TIMEOUT = int(os.environ.get('VAULT_REQUEST_TIMEOUT', 20))
@@ -48,7 +48,7 @@ def validateParams(request, logging):
         
         return secret_reference_metadata, secret_type, vault_auth, transaction_id, None, None
     except Exception as err: 
-        logging.error(f"validateParams() Got error in function validateParams(): {str(err)}")
+        logging.error(f"Got error in function validateParams(): {str(err)}")
         return None, None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
     
 
@@ -75,7 +75,7 @@ def validateParamsForBulkRequest(request, logging):
         
         return secret_reference_metadata, vault_auth, transaction_id, None, None
     except Exception as err: 
-        logging.error(f"validateParamsForBulkRequest() Got error in function validateParams(): {str(err)}")
+        logging.error(f"Got error in function validateParamsForBulkRequest(): {str(err)}")
         return None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -86,23 +86,19 @@ def validateParamsForBulkRequest(request, logging):
 def getCachedToken(vault, logging):
     try:
 
-        token_dict = caches.TOKEN[vault.vault_type]
-        if vault.vault_type == IBM_SECRETS_MANAGER:
-            cachekey_entry = token_dict.get(vault.auth["api_key"], None)
-        elif vault.vault_type == AZURE_KEY_VAULT:
-            cachekey_entry = token_dict.get(vault.auth["CLIENT_ID"], None)
-        if cachekey_entry is None:
+        cached_token = vault.getCachedTokens(logging)
+        if cached_token is None:
             logging.debug(f"{vault.transaction_id}: Cached token not found")
             return ""
 
-        if datetime.fromtimestamp(cachekey_entry["expiration"]) - timedelta(0,60) > datetime.now():
+        if datetime.fromtimestamp(cached_token["expiration"]) - timedelta(0,60) > datetime.now():
             logging.debug(f"Cached token found and not expired")
-            return cachekey_entry["token"]
+            return cached_token["token"]
         
         logging.debug(f"{vault.transaction_id} - {vault.secret_urn}: Cached token has expired")
         return ""
     except Exception as err: 
-        logging.error(f"{vault.transaction_id} - {vault.secret_urn}: getCachedToken() Got error in function getCachedToken(): {str(err)}")
+        logging.error(f"{vault.transaction_id} - {vault.secret_urn}: Got error in function getCachedToken(): {str(err)}")
         return ""
 
 
