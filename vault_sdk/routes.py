@@ -46,7 +46,7 @@ def health():
 # @query_param {string} secret_type - value from {credentials|certificate|generic|key}
 # @query_param {bool} validate - if this is set to true then bridge returns generic format response without matching CPD secret type with vault secret type
 #
-# @header {string} Vault-Auth - <IAM_URL=;VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
+# @header {string} Vault-Auth - <VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
 # @header {string} IBM-CPD-Transaction-ID - transaction id
 # 
 # SUCCESS RESPONSE {SECRET_JSON_STRING} HTTP_SUCCESS_CODE
@@ -89,7 +89,7 @@ def get_secret(vault_type, secret_urn):
 #
 # @query_param {string} secret_reference_metadata - b64 encoded secret references <secret_reference_metadata...> Note: value need to be separated by semicolon
 #
-# @header {string} Vault-Auth - <IAM_URL=;VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
+# @header {string} Vault-Auth - <VAULT_URL=;API_KEY=;> Note: value need to be separated by semicolon
 # @header {string} IBM-CPD-Transaction-ID - transaction id
 # 
 # SUCCESS RESPONSE {SECRET_JSON_STRING} 200

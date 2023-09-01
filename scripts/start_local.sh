@@ -4,6 +4,9 @@
 # export SKIP_TLS_VERIFY='false'
 # export VAULT_REQUEST_TIMEOUT=20
 # export VAULT_REQUEST_RETRY_COUNT=5
+# export IBM_CLOUD_IAM_URL='https://iam.cloud.ibm.com/identity/token'
+# export AZURE_IAM_URL='https://login.microsoftonline.com'
+
 
 export TLS_CERTITICATE_FILE_PATH="../certs/key.pem"
 export TLS_KEY_FILE_PATH="../certs/cert.pem"

@@ -52,7 +52,7 @@ class AzureKeyVault(object):
             decoded_auth_header = base64.b64decode(self.auth_string).decode('utf-8')
             
             auth_list = decoded_auth_header.split(";")
-            if len(auth_list) < 5:
+            if len(auth_list) < 4:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
                 return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE           
             self.auth = {}
@@ -63,9 +63,11 @@ class AzureKeyVault(object):
                     return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
                 self.auth[temp[0]] = temp[1]
 
-            if self.auth.get(VAULT_URL, "") == "" or self.auth.get(TENANT_ID, "") == "" or self.auth.get(CLIENT_ID, "") == "" or self.auth.get(CLIENT_SECRET, "") == "" or self.auth.get(IAM_URL, "") == "":
+            if self.auth.get(VAULT_URL, "") == "" or self.auth.get(TENANT_ID, "") == "" or self.auth.get(CLIENT_ID, "") == "" or self.auth.get(CLIENT_SECRET, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
                 return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+            
+            self.auth[AZURE_IAM_URL] = os.environ.get('AZURE_IAM_URL', DEFAULT_AZURE_IAM_URL)
 
             return None, None
         except Exception as err: 
@@ -122,7 +124,7 @@ class AzureKeyVault(object):
                 "grant_type": "client_credentials"
             }
 
-            iam_url = f"{self.auth[IAM_URL]}/{self.auth[TENANT_ID]}/oauth2/v2.0/token"
+            iam_url = f"{self.auth[AZURE_IAM_URL]}/{self.auth[TENANT_ID]}/oauth2/v2.0/token"
             
             response = sendPostRequest(iam_url, headers, data, logging)
             # return error if the request failed

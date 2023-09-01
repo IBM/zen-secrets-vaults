@@ -14,7 +14,6 @@ SECRET_TYPES = {
 }
 
 # requests constants
-IAM_URL = "iam_url"
 VAULT_URL = "vault_url"
 
 SECRET_REFERENCE_METADATA = "secret_reference_metadata"
@@ -29,6 +28,7 @@ TRANSACTION_ID_HEADER = "IBM-CPD-Transaction-ID"
 ERROR_MISSING_VAULT_HEADER = "Missing vault connection information in VAULT-AUTH header"
 ERROR_ESTABLISHING_CONNECTION = "Error while establishing connection with Vault providers IAM"
 ERROR_TOKEN_NOT_RETURNED = "Token is not returned from ibm-secret-manager"
+ERROR_INVALID_IAM_URL = "IAM URL is invalid"
 
 # error codes
 HTTP_SUCCESS_CODE = 200
