@@ -6,15 +6,14 @@ import sys
 # include parent paths, so the module can be imported
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
-sys.path.append(parent)
 parent = os.path.dirname(parent)
 parent = os.path.dirname(parent)
 sys.path.append(parent)
 
-from ibm_secrets_manager.constants import *
-from vault_sdk import caches
-from vault_sdk.constants import *
-from vault_sdk.utils import getCachedToken, sendGetRequest, sendPostRequest, buildErrorPayload
+from vault_sdk.bridges.ibm_secrets_manager.constants import *
+from vault_sdk.bridges.ibm_secrets_manager.caches import *
+from vault_sdk.bridges_common.constants import *
+from vault_sdk.framework.utils import getCachedToken, sendGetRequest, sendPostRequest, buildErrorPayload
 
 class IBMSecretManager(object):
     def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id):
@@ -106,7 +105,7 @@ class IBMSecretManager(object):
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractFromVaultAuthHeader() Got error in function extractFromVaultAuthHeader(): {str(err)}")
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function extractFromVaultAuthHeader(): {str(err)}")
             return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -132,7 +131,20 @@ class IBMSecretManager(object):
             
             return extracted_secret, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: processRequestGetSecret() Got error in function processRequestGetSecret(): {str(err)}")
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function processRequestGetSecret(): {str(err)}")
+            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+
+
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {dict} 
+    def getCachedTokens(self, logging):
+        try:
+            if len(CACHED_TOKEN) == 0:
+                return None
+            return CACHED_TOKEN[self.auth[API_KEY]]
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getCachedTokens(): {str(err)}")
             return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -170,13 +182,13 @@ class IBMSecretManager(object):
                 return buildErrorPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             # store token to cache
-            caches.TOKEN[self.vault_type][self.auth[API_KEY]] = {}
-            caches.TOKEN[self.vault_type][self.auth[API_KEY]]["token"] = data["access_token"]
-            caches.TOKEN[self.vault_type][self.auth[API_KEY]]["expiration"] = data["expiration"]
+            CACHED_TOKEN[self.auth[API_KEY]] = {}
+            CACHED_TOKEN[self.auth[API_KEY]]["token"] = data["access_token"]
+            CACHED_TOKEN[self.auth[API_KEY]]["expiration"] = data["expiration"]
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: getAccessToken() Got error in function getAccessToken(): {str(err)}")
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getAccessToken(): {str(err)}")
             return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -189,7 +201,7 @@ class IBMSecretManager(object):
         try:
             logging.debug(f"{self.transaction_id} - {self.secret_urn}: Sending request to get the secret")
             headers = {
-                "Authorization": "Bearer " + caches.TOKEN[self.vault_type][self.auth[API_KEY]]["token"],
+                "Authorization": "Bearer " + CACHED_TOKEN[self.auth[API_KEY]]["token"],
                 "Accept": "application/json"
             }
 
@@ -200,7 +212,7 @@ class IBMSecretManager(object):
 
             return response.text, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: getSecret() Got error in function getSecret(): {str(err)}")
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getSecret(): {str(err)}")
             return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 
@@ -261,6 +273,6 @@ class IBMSecretManager(object):
 
             return response, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecret() Got error in function extractSecret(): {str(err)}")
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function extractSecret(): {str(err)}")
             return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
         

@@ -1,6 +1,5 @@
 LOGGING_LEVEL_LIST = ["DEBUG", "INFO", "ERROR", "CRITICAL"]
 
-
 # vault constants
 IBM_SECRETS_MANAGER = "ibm-cloud-secrets-manager"
 AWS = "aws-secrets-manager"
@@ -15,14 +14,12 @@ SECRET_TYPES = {
 
 # requests constants
 VAULT_URL = "vault_url"
-
 SECRET_REFERENCE_METADATA = "secret_reference_metadata"
 VAULT_TYPE = "vault_type"
 SECRET_URN = "secret_urn"
 SECRET_TYPE = "secret_type"
 VAULT_AUTH_HEADER = "Vault-Auth"
 TRANSACTION_ID_HEADER = "IBM-CPD-Transaction-ID"
-
 
 # error message
 ERROR_MISSING_VAULT_HEADER = "Missing vault connection information in VAULT-AUTH header"

@@ -11,10 +11,10 @@ parent = os.path.dirname(parent)
 parent = os.path.dirname(parent)
 sys.path.append(parent)
 
-from vault_sdk import caches
-from vault_sdk.constants import *
+from vault_sdk.bridges_common.constants import *
 from vault_sdk.bridges.azure_key_vault.constants import *
-from vault_sdk.utils import getCachedToken, buildErrorPayload, sendGetRequest, sendPostRequest
+from vault_sdk.bridges.azure_key_vault.caches import *
+from vault_sdk.framework.utils import getCachedToken, buildErrorPayload, sendGetRequest, sendPostRequest
 
 class AzureKeyVault(object):
     def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id):
@@ -68,6 +68,7 @@ class AzureKeyVault(object):
                 return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
             self.auth[AZURE_IAM_URL] = os.environ.get('AZURE_IAM_URL', DEFAULT_AZURE_IAM_URL)
+            self.cache_key = self.auth[CLIENT_ID] + "~" + self.auth[CLIENT_SECRET] + "~" +self.auth[TENANT_ID]
 
             return None, None
         except Exception as err: 
@@ -97,6 +98,19 @@ class AzureKeyVault(object):
             return extracted_secret, None, None
         except Exception as err: 
             logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function processRequestGetSecret(): {str(err)}")
+            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+
+
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {dict} 
+    def getCachedTokens(self, logging):
+        try:
+            if len(CACHED_TOKEN) == 0:
+                return None
+            return CACHED_TOKEN[self.cache_key]
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function getCachedTokens(): {str(err)}")
             return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
@@ -140,9 +154,9 @@ class AzureKeyVault(object):
             expiration = (datetime.now() + timedelta(seconds=expires_dur)).timestamp()
 
             # store token to cache
-            caches.TOKEN[self.vault_type][self.auth[CLIENT_ID]] = {}
-            caches.TOKEN[self.vault_type][self.auth[CLIENT_ID]]["token"] = data["access_token"]
-            caches.TOKEN[self.vault_type][self.auth[CLIENT_ID]]["expiration"] = expiration
+            CACHED_TOKEN[self.cache_key] = {}
+            CACHED_TOKEN[self.cache_key]["token"] = data["access_token"]
+            CACHED_TOKEN[self.cache_key]["expiration"] = expiration
 
             return None, None
         except Exception as err: 
@@ -159,7 +173,7 @@ class AzureKeyVault(object):
         try:
             logging.debug(f"{self.secret_name}: Sending request to get the secret")
             headers = {
-                "Authorization": "Bearer " + caches.TOKEN[self.vault_type][self.auth[CLIENT_ID]]["token"],
+                "Authorization": "Bearer " + CACHED_TOKEN[self.cache_key]["token"],
                 "Accept": "application/json"
             }
 

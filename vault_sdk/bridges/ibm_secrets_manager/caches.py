@@ -1,8 +1,6 @@
-from constants import *
-
-# example format
-# TOKEN = {
-#     IBM_SECRETS_MANAGER: {
+# a dict that stores cached token, for example:
+#
+# CACHED_TOKEN: {
 #         "<iam-key-1>": {
 #             "token": "xxxxx",
 #             "expiration": "xxxxxx"
@@ -13,12 +11,4 @@ from constants import *
 #         },
 #         ......
 #     }, 
-#     AWS: {}, 
-#     AZURE: {}
-# }
-
-TOKEN = {
-    IBM_SECRETS_MANAGER: {}, 
-    AWS: {}, 
-    AZURE_KEY_VAULT: {}
-}
+CACHED_TOKEN = {}

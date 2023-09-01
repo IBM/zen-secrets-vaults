@@ -1,9 +1,9 @@
 from flask import Flask, request, json
-from utils import validateParams, validateParamsForBulkRequest, buildErrorResponse, buildErrorPayload, bulkThreadFunction
+from framework.utils import validateParams, validateParamsForBulkRequest, buildErrorResponse, buildErrorPayload, bulkThreadFunction
 from logging.config import dictConfig
 import os
-from constants import *
-from bridge_lookup import CLASS_LOOKUP
+from bridges_common.constants import *
+from bridges_common.bridge_lookup import CLASS_LOOKUP
 import base64
 import threading
 
