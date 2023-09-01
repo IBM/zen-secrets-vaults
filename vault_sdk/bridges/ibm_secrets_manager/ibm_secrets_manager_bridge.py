@@ -86,7 +86,7 @@ class IBMSecretManager(object):
             decoded_auth_header = base64.b64decode(self.auth_string).decode('utf-8')
 
             auth_list = decoded_auth_header.split(";")
-            if len(auth_list) < 3:
+            if len(auth_list) < 2:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
                 return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
@@ -98,9 +98,11 @@ class IBMSecretManager(object):
                      return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
                 self.auth[temp[0]] = temp[1]
 
-            if self.auth.get(VAULT_URL, "") == "" or  self.auth.get(IAM_URL, "") == "" or self.auth.get(API_KEY, "") == "":
+            if self.auth.get(VAULT_URL, "") == "" or self.auth.get(API_KEY, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
                 return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            self.auth[IBM_CLOUD_IAM_URL] = os.environ.get('IBM_CLOUD_IAM_URL', DEFAULT_IBM_CLOUD_IAM_URL)
 
             return None, None
         except Exception as err: 
@@ -155,10 +157,10 @@ class IBMSecretManager(object):
                 "apikey": self.auth[API_KEY]
             }
 
-            response = sendPostRequest(self.auth[IAM_URL], headers, data, logging)
+            response = sendPostRequest(self.auth[IBM_CLOUD_IAM_URL], headers, data, logging)
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
-                logging.error(f"{self.transaction_id} - {self.secret_urn}: getAccessToken() Error {response.text} and status code {response.status_code} returned from {self.auth[IAM_URL]}")
+                logging.error(f"{self.transaction_id} - {self.secret_urn}: getAccessToken() Error {response.text} and status code {response.status_code} returned from {self.auth[IBM_CLOUD_IAM_URL]}")
                 return buildErrorPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
             
             
