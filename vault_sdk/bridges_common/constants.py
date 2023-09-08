@@ -2,13 +2,13 @@ LOGGING_LEVEL_LIST = ["DEBUG", "INFO", "ERROR", "CRITICAL"]
 
 # vault constants
 IBM_SECRETS_MANAGER = "ibm-cloud-secrets-manager"
-AWS = "aws-secrets-manager"
+AWS_SECRETS_MANAGER = "aws-secrets-manager"
 AZURE_KEY_VAULT = "azure-key-vault"
 
-VAULT_TYPES = [IBM_SECRETS_MANAGER, AWS, AZURE_KEY_VAULT]
+VAULT_TYPES = [IBM_SECRETS_MANAGER, AWS_SECRETS_MANAGER, AZURE_KEY_VAULT]
 SECRET_TYPES = {
     IBM_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key"],
-    AWS: [],
+    AWS_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key", "token"],
     AZURE_KEY_VAULT: ["credentials", "certificate", "generic", "key"]
 }
 
