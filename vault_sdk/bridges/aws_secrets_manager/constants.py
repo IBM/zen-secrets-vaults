@@ -1,0 +1,6 @@
+AWS_ACCESS_KEY_ID = "AWS_ACCESS_KEY_ID"
+AWS_SECRET_ACCESS_KEY = "AWS_SECRET_ACCESS_KEY"
+SECRET_ID = "secret_id"
+ERROR_SECRET_ID_NOT_FOUND = "Secret id is not found from secret_reference_metadata"
+INVALID_JSON_FORMAT_ERROR = "Invalid JSON format for secret_value"
+INVALID_VAULT_URL_ERROR = "Invalid Vault URL. Missing {} in the URL"

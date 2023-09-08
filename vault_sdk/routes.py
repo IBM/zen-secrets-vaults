@@ -63,7 +63,7 @@ def get_secret(vault_type, secret_urn):
         target = {"name": VAULT_TYPE, "type": "parameter"}
         return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
     
-    if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
+    if secret_type not in SECRET_TYPES[vault_type]:
         target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
         return buildErrorResponse(app, buildErrorPayload(f"{transaction_id}: secret type {secret_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE, logging)
 
