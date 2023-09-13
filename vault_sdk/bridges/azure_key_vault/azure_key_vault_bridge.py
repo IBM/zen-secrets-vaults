@@ -284,7 +284,7 @@ class AzureKeyVault(object):
 
             elif secret_type == "key":
                 key_value = secret_value
-                response_secret_data = key_value
+                response_secret_data = {"key": key_value}
                 if key_value:
                     get_secret = True
 
@@ -298,7 +298,7 @@ class AzureKeyVault(object):
 
             elif secret_type == "token":
                 token_value = secret_value
-                response_secret_data = token_value
+                response_secret_data = {"token": token_value}
                 if token_value:
                     get_secret = True
 

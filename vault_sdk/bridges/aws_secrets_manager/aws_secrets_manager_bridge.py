@@ -48,6 +48,34 @@ class AWSSecretsManager(object):
             logging.error(f"{self.transaction_id} - {self.secret_id}: Got error: {str(err)}")
             return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
         
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {string} error message if any
+    #
+    # this function extract secret_id, secret_urn, and secret_type from request query param secret_reference_metadata
+    def extractSecretReferenceMetadataBulk(self, logging):
+        try:
+            secret_urn = self.secret_reference_metadata.get(SECRET_URN, "")
+            secret_id = self.secret_reference_metadata.get(SECRET_ID, "")
+            secret_type = self.secret_reference_metadata.get(SECRET_TYPE, "")
+
+            if secret_urn == "" or secret_id == "" or secret_type == "":
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type, secret id, and secret urn cannot be empty", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            if secret_type not in SECRET_TYPES[AWS_SECRETS_MANAGER]:
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type {secret_type} is not supported", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            self.secret_id = secret_id
+            self.secret_urn = secret_urn
+            self.secret_type = secret_type
+
+            return None, None
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecretReferenceMetadataBulk() Got error: {str(err)}")
+            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+        
 # @extracts host, service, and region from the given AWS URL
     def extractFromVaultURL(self, url, logging):
         try:
@@ -143,11 +171,12 @@ class AWSSecretsManager(object):
 
 
     # @param {logging} logging — python logging handler
+    # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code
-    def processRequestGetSecret(self, logging):
+    def processRequestGetSecret(self, logging, is_bulk=False):
         try:
             
             secret, error, code = self.getSecret(logging)
@@ -155,7 +184,7 @@ class AWSSecretsManager(object):
                 return None, error, code
             # return secret, None, None
             
-            extracted_secret, error, code = self.extractSecret(secret, logging)
+            extracted_secret, error, code = self.extractSecret(secret, logging, is_bulk)
             if error is not None:
                 return None, error, code
             
@@ -259,11 +288,12 @@ class AWSSecretsManager(object):
 
     # @param {string} secret — secret content in string
     # @param {logging} logging — python logging handler
+    # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} response - content of response
     # @returns {string} error message if any
     # @returns {number} status code
-    def extractSecret(self, secret, logging):
+    def extractSecret(self, secret, logging, is_bulk=False):
         try:
             logging.debug(f"{self.secret_id}: Extracting secret data")
             
@@ -290,13 +320,13 @@ class AWSSecretsManager(object):
 
             elif secret_type == "key":
                 key_value = secret_string
-                response_secret_data = key_value
+                response_secret_data = {"key": key_value}
                 if key_value:
                     get_secret = True
 
             elif secret_type == "token":
                 token_value = secret_string
-                response_secret_data = token_value
+                response_secret_data = {"token": token_value}
                 if token_value:
                     get_secret = True
 
@@ -327,7 +357,9 @@ class AWSSecretsManager(object):
                 return None, buildErrorPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
-            response["secret"][secret_type] = response_secret_data
+            response["secret"] = response_secret_data
+            if is_bulk:
+                response[SECRET_URN] = self.secret_urn
 
             return response, None, None
         except Exception as err:
