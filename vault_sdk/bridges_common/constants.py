@@ -9,7 +9,7 @@ VAULT_TYPES = [IBM_SECRETS_MANAGER, AWS_SECRETS_MANAGER, AZURE_KEY_VAULT]
 SECRET_TYPES = {
     IBM_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key"],
     AWS_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key", "token"],
-    AZURE_KEY_VAULT: ["credentials", "certificate", "generic", "key"]
+    AZURE_KEY_VAULT: ["credentials", "certificate", "generic", "key", "token"]
 }
 
 # requests constants

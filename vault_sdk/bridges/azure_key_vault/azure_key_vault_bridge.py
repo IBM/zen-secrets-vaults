@@ -265,6 +265,12 @@ class AzureKeyVault(object):
                 if certificate or key:
                     get_secret = True
 
+            elif secret_type == "token":
+                token_value = secret_value
+                response_secret_data = token_value
+                if token_value:
+                    get_secret = True
+
             elif secret_type == "generic":
                 try:
                     # Try to parse the secret_value as JSON
