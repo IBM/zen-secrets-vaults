@@ -44,6 +44,35 @@ class AzureKeyVault(object):
             logging.error(f"{self.transaction_id} - {self.secret_name}: Got error: {str(err)}")
             return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
+
+    # @param {logging} logging — python logging handler
+    #
+    # @returns {string} error message if any
+    #
+    # this function extract secret_id, secret_urn, and secret_type from request query param secret_reference_metadata
+    def extractSecretReferenceMetadataBulk(self, logging):
+        try:
+            secret_urn = self.secret_reference_metadata.get(SECRET_URN, "")
+            secret_name = self.secret_reference_metadata.get(SECRET_NAME, "")
+            secret_type = self.secret_reference_metadata.get(SECRET_TYPE, "")
+
+            if secret_urn == "" or secret_name == "" or secret_type == "":
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type, secret name, and secret urn cannot be empty", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            if secret_type not in SECRET_TYPES[AZURE_KEY_VAULT]:
+                target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
+                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type {secret_type} is not supported", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+            self.secret_name = secret_name
+            self.secret_urn = secret_urn
+            self.secret_type = secret_type
+
+            return None, None
+        except Exception as err: 
+            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecretReferenceMetadataBulk() Got error: {str(err)}")
+            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+
     # @param {logging} logging — python logging handler
     #
     # @returns {string} error message if any
@@ -77,11 +106,12 @@ class AzureKeyVault(object):
 
 
     # @param {logging} logging — python logging handler
+    # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code
-    def processRequestGetSecret(self, logging):
+    def processRequestGetSecret(self, logging, is_bulk=False):
         try:
             error, code = self.getAccessToken(logging)
             if error is not None:
@@ -91,7 +121,7 @@ class AzureKeyVault(object):
             if error is not None:
                 return None, error, code
             
-            extracted_secret, error, code = self.extractSecret(secret, logging)
+            extracted_secret, error, code = self.extractSecret(secret, logging, is_bulk)
             if error is not None:
                 return None, error, code
             
@@ -219,11 +249,12 @@ class AzureKeyVault(object):
 
     # @param {string} secret — secret content in string
     # @param {logging} logging — python logging handler
+    # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} response - content of response
     # @returns {string} error message if any
     # @returns {number} status code
-    def extractSecret(self, secret, logging):
+    def extractSecret(self, secret, logging, is_bulk=False):
         try:
             logging.debug(f"{self.secret_name}: Extracting secret data")
             
@@ -285,7 +316,9 @@ class AzureKeyVault(object):
                 return None, buildErrorPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
-            response["secret"][secret_type] = response_secret_data
+            response["secret"] = response_secret_data
+            if is_bulk:
+                response[SECRET_URN] = self.secret_urn
 
             return response, None, None
         except Exception as err:
