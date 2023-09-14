@@ -137,25 +137,15 @@ class IBMSecretManager(object):
 
     # @param {logging} logging — python logging handler
     #
-    # @returns {dict} 
-    def getCachedTokens(self, logging):
-        try:
-            if len(CACHED_TOKEN) == 0:
-                return None
-            return CACHED_TOKEN[self.auth[API_KEY]]
-        except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getCachedTokens(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
-
-
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     # @returns {number} status code
     def getAccessToken(self, logging):
         try:
+            token = None
+            if self.auth[API_KEY] in CACHED_TOKEN:
+                token = CACHED_TOKEN[self.auth[API_KEY]]
             # get cached token and check if it is expired
-            cached_token = getCachedToken(self, logging)
+            cached_token = getCachedToken(self, token, logging)
             if cached_token != "":
                 return None, None
 
