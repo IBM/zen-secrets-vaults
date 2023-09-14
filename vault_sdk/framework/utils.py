@@ -79,14 +79,14 @@ def validateParamsForBulkRequest(request, logging):
         return None, None, None, buildErrorPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-
+# @param {vault} vault — vault object
+# @param {dict} cached_token — dict of token {"token": "", "expiration": ""}
 # @param {logging} logging — python logging handler
 #
 # @returns {string} access token
-def getCachedToken(vault, logging):
+def getCachedToken(vault, cached_token, logging):
     try:
 
-        cached_token = vault.getCachedTokens(logging)
         if cached_token is None:
             logging.debug(f"{vault.transaction_id}: Cached token not found")
             return ""
