@@ -195,7 +195,7 @@ class IBMSecretManager(object):
                 "Accept": "application/json"
             }
 
-            response = sendGetRequest(self.auth[VAULT_URL]+"/"+self.secret_id, headers, None, logging)
+            response = sendGetRequest(self.auth[VAULT_URL]+"/api/v2/secrets/"+self.secret_id, headers, None, logging)
             if response.status_code != HTTP_SUCCESS_CODE:
                 logging.error(f"{self.transaction_id} - {self.secret_urn}: getSecret() Error {response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
                 return None, buildErrorPayload("Error while establishing connection with Vault providers", E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
