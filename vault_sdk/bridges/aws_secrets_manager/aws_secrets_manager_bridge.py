@@ -14,7 +14,6 @@ sys.path.append(parent)
 
 from vault_sdk.bridges_common.constants import *
 from vault_sdk.bridges.aws_secrets_manager.constants import *
-from vault_sdk.bridges.aws_secrets_manager.caches import *
 from vault_sdk.framework.utils import buildExceptionPayload, sendPostRequest, logException, logDebug, getCurrentFilename
 
 FILE_NAME = getCurrentFilename(__file__)

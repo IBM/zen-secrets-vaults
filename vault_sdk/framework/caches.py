@@ -1,14 +1,19 @@
 # a dict that stores cached token, for example:
 #
-# CACHED_TOKEN: {
-#         "<clientID>~<clientSecret>~<tenantID>": {
+# CACHED_TOKEN ={
+#     "<vaults-type-1>": {
+#         "<iam-key-1>": {
 #             "token": "xxxxx",
 #             "expiration": "xxxxxx"
 #         },
-#         "<clientID>~<clientSecret>~<tenantID>": {
+#         "<iam-key-2>": {
 #             "token": "xxxxx",
 #             "expiration": "xxxxxx"
 #         },
-#         ......
-#     }, 
-CACHED_TOKEN = {}
+#         .....
+#     }
+#     "<vaults-type-2>": {
+#         .....
+#     }
+# }
+CACHED_TOKEN ={}
