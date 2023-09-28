@@ -13,6 +13,7 @@ parent = os.path.dirname(parent)
 sys.path.append(parent)
 
 from vault_sdk.bridges_common.constants import *
+from vault_sdk.framework import caches
 
 SKIP_TLS_VERIFY = os.environ.get('SKIP_TLS_VERIFY', 'false')
 VAULT_REQUEST_TIMEOUT = int(os.environ.get('VAULT_REQUEST_TIMEOUT', 20))
@@ -83,26 +84,47 @@ def validateParamsForBulkRequest(request):
         return None, None, None, buildFrameworkExceptionPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-# @param {vault} vault — vault object
-# @param {dict} cached_token — dict of token {"token": "", "expiration": ""}
+# @param {string} vault_type — vault type
+# @param {string} key — key of vault token
+# @param {string} transaction_id — transaction id of current request
 #
 # @returns {string} access token
-def getCachedToken(vault, cached_token):
+def getCachedToken(vault_type, key, transaction_id):
     try:
-
-        if cached_token is None:
-            logDebug(vault, "getCachedToken()", FILE_NAME, "Cached token not found")
+        if vault_type not in caches.CACHED_TOKEN:
             return ""
 
+        if key not in caches.CACHED_TOKEN[vault_type]:
+            return ""
+
+        cached_token = caches.CACHED_TOKEN[vault_type][key]
+
         if datetime.fromtimestamp(cached_token["expiration"]) - timedelta(0,60) > datetime.now():
-            logDebug(vault, "getCachedToken()", FILE_NAME, "Cached token found and not expired")
+            logFrameworkDebug(transaction_id, "getCachedToken()", FILE_NAME, "Cached token found and not expired")
             return cached_token["token"]
-        
-        logDebug(vault, "getCachedToken()", FILE_NAME, "Cached token has expired")
+
+        logFrameworkDebug(transaction_id, "getCachedToken()", FILE_NAME, "Cached token has expired")
         return ""
     except Exception as err: 
-        logException(vault, "getCachedToken()", FILE_NAME, str(err))
+        logFrameworkException(transaction_id, "getCachedToken()", FILE_NAME, str(err))
         return ""
+
+
+# @param {string} vault_type — vault type
+# @param {string} key — key of vault token
+# @param {string} transaction_id — transaction id of current request
+# 
+# store the token to caches
+def saveTokenInCache(vault_type, key, token, transaction_id):
+    try:
+        if vault_type not in caches.CACHED_TOKEN:
+            caches.CACHED_TOKEN[vault_type] = {}
+        caches.CACHED_TOKEN[vault_type][key] = token
+
+        return
+    except Exception as err: 
+        logFrameworkException(transaction_id, "saveTokenInCache()", FILE_NAME, str(err))
+        return
 
 
 # @param {Flask.app} app 

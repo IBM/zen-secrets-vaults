@@ -13,8 +13,7 @@ sys.path.append(parent)
 
 from vault_sdk.bridges_common.constants import *
 from vault_sdk.bridges.azure_key_vault.constants import *
-from vault_sdk.bridges.azure_key_vault.caches import *
-from vault_sdk.framework.utils import getCachedToken, buildExceptionPayload, sendGetRequest, sendPostRequest, logException, logDebug, getCurrentFilename
+from vault_sdk.framework.utils import getCachedToken, saveTokenInCache, buildExceptionPayload, sendGetRequest, sendPostRequest, logException, logDebug, getCurrentFilename
 
 FILE_NAME = getCurrentFilename(__file__)
 
@@ -111,11 +110,11 @@ class AzureKeyVault(object):
     # @returns {number} status code
     def processRequestGetSecret(self, is_bulk=False):
         try:
-            error, code = self.getAccessToken()
+            token, error, code = self.getAccessToken()
             if error is not None:
                 return None, error, code
             
-            secret, error, code = self.getSecret()
+            secret, error, code = self.getSecret(token)
             if error is not None:
                 return None, error, code
             
@@ -133,13 +132,9 @@ class AzureKeyVault(object):
     # @returns {number} status code
     def getAccessToken(self):
         try:
-            token = None
-            if self.cache_key in CACHED_TOKEN:
-                token = CACHED_TOKEN[self.cache_key]
-            # get cached token and check if it is expired
-            cached_token = getCachedToken(self, token)
+            cached_token = getCachedToken(AZURE_KEY_VAULT, self.cache_key, self.transaction_id)
             if cached_token != "":
-                return None, None
+                return cached_token, None, None
 
             # if token is expired, then send request to get a new token
             headers = {
@@ -159,34 +154,32 @@ class AzureKeyVault(object):
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getAccessToken()", FILE_NAME, f"Error {response.text} and status code {response.status_code} returned from {iam_url}")
-                return buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                return None, buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
             data = json.loads(response.text)
 
             if "access_token" not in data or "expires_in" not in data:
-                return buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return None, buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
             
+            # store token to cache
             expires_dur = data.get("expires_in", 0) 
             expiration = (datetime.now() + timedelta(seconds=expires_dur)).timestamp()
+            token = {"token": data["access_token"], "expiration": expiration}
+            saveTokenInCache(AZURE_KEY_VAULT, self.cache_key, token, self.transaction_id)
 
-            # store token to cache
-            CACHED_TOKEN[self.cache_key] = {}
-            CACHED_TOKEN[self.cache_key]["token"] = data["access_token"]
-            CACHED_TOKEN[self.cache_key]["expiration"] = expiration
-
-            return None, None
+            return data["access_token"], None, None
         except Exception as err: 
             logException(self, "getAccessToken()", FILE_NAME, str(err))
-            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code 
-    def getSecret(self):
+    def getSecret(self, token):
         try:
             logDebug(self, "getSecret()", FILE_NAME, "Sending request to get the secret")
             headers = {
-                "Authorization": "Bearer " + CACHED_TOKEN[self.cache_key]["token"],
+                "Authorization": "Bearer " + token,
                 "Accept": "application/json"
             }
 

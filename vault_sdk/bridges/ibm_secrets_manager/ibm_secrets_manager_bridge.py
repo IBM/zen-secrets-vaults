@@ -11,9 +11,8 @@ parent = os.path.dirname(parent)
 sys.path.append(parent)
 
 from vault_sdk.bridges.ibm_secrets_manager.constants import *
-from vault_sdk.bridges.ibm_secrets_manager.caches import *
 from vault_sdk.bridges_common.constants import *
-from vault_sdk.framework.utils import getCachedToken, sendGetRequest, sendPostRequest, buildExceptionPayload, logException, logDebug, getCurrentFilename
+from vault_sdk.framework.utils import getCachedToken, saveTokenInCache, sendGetRequest, sendPostRequest, buildExceptionPayload, logException, logDebug, getCurrentFilename
 
 FILE_NAME = getCurrentFilename(__file__)
 
@@ -98,6 +97,7 @@ class IBMSecretManager(object):
                 return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             self.auth[IBM_CLOUD_IAM_URL] = os.environ.get('IBM_CLOUD_IAM_URL', DEFAULT_IBM_CLOUD_IAM_URL)
+            self.cache_key = self.auth[API_KEY]
 
             return None, None
         except Exception as err: 
@@ -112,11 +112,11 @@ class IBMSecretManager(object):
     # @returns {number} status code
     def processRequestGetSecret(self, is_bulk=False):
         try:
-            error, code = self.getAccessToken()
+            token, error, code = self.getAccessToken()
             if error is not None:
                 return None, error, code
             
-            secret, error, code = self.getSecret()
+            secret, error, code = self.getSecret(token)
             if error is not None:
                 return None, error, code
             
@@ -130,19 +130,16 @@ class IBMSecretManager(object):
             return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
+    # @returns {string} token
     # @returns {string} error message if any
     # @returns {number} status code
     def getAccessToken(self):
         try:
-            token = None
-            if self.auth[API_KEY] in CACHED_TOKEN:
-                token = CACHED_TOKEN[self.auth[API_KEY]]
-            # get cached token and check if it is expired
-            cached_token = getCachedToken(self, token)
+            cached_token = getCachedToken(IBM_SECRETS_MANAGER, self.cache_key, self.transaction_id)
             if cached_token != "":
-                return None, None
+                return cached_token, None, None
 
-            # if token is expired, then send request to get a new token
+            # if no cached token is found, then send request to get a new token
             headers = {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json"
@@ -156,33 +153,32 @@ class IBMSecretManager(object):
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getAccessToken()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[IBM_CLOUD_IAM_URL]}")
-                return buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                return None, buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
             
             
             data = json.loads(response.text)
 
             if "access_token" not in data or "expiration" not in data:
-                return buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return None, buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             # store token to cache
-            CACHED_TOKEN[self.auth[API_KEY]] = {}
-            CACHED_TOKEN[self.auth[API_KEY]]["token"] = data["access_token"]
-            CACHED_TOKEN[self.auth[API_KEY]]["expiration"] = data["expiration"]
+            token = {"token": data["access_token"], "expiration": data["expiration"]}
+            saveTokenInCache(IBM_SECRETS_MANAGER, self.cache_key, token, self.transaction_id)
 
-            return None, None
+            return token["token"], None, None
         except Exception as err: 
             logException(self, "getAccessToken()", FILE_NAME, str(err))
-            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {string} response body
     # @returns {string} error message if any
     # @returns {number} status code    
-    def getSecret(self):
+    def getSecret(self, token):
         try:
             logDebug(self, "getSecret()", FILE_NAME, "Sending request to get the secret")
             headers = {
-                "Authorization": "Bearer " + CACHED_TOKEN[self.auth[API_KEY]]["token"],
+                "Authorization": "Bearer " + token,
                 "Accept": "application/json"
             }
 
