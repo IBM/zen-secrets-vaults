@@ -13,7 +13,9 @@ sys.path.append(parent)
 from vault_sdk.bridges.ibm_secrets_manager.constants import *
 from vault_sdk.bridges.ibm_secrets_manager.caches import *
 from vault_sdk.bridges_common.constants import *
-from vault_sdk.framework.utils import getCachedToken, sendGetRequest, sendPostRequest, buildErrorPayload
+from vault_sdk.framework.utils import getCachedToken, sendGetRequest, sendPostRequest, buildExceptionPayload, logException, logDebug, getCurrentFilename
+
+FILE_NAME = getCurrentFilename(__file__)
 
 class IBMSecretManager(object):
     def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id):
@@ -26,33 +28,29 @@ class IBMSecretManager(object):
         self.secret_id = ""
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     #
     # this function extract secret_id from request query param secret_reference_metadata
-    def extractSecretReferenceMetadata(self, logging):
+    def extractSecretReferenceMetadata(self):
         try:
             decoded_secret_metadata = json.loads(base64.b64decode(self.secret_reference_metadata).decode('utf-8'))
             secret_id = decoded_secret_metadata.get(SECRET_ID, "")
 
             if secret_id == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id}: {ERROR_SECRET_ID_NOT_FOUND}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f"{ERROR_SECRET_ID_NOT_FOUND}", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
             self.secret_id = secret_id
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecretReferenceMetadata() Got error: {str(err)}")
-            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            logException(self, "extractSecretReferenceMetadata()", FILE_NAME, str(err))
+            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
         
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     #
     # this function extract secret_id, secret_urn, and secret_type from request query param secret_reference_metadata
-    def extractSecretReferenceMetadataBulk(self, logging):
+    def extractSecretReferenceMetadataBulk(self):
         try:
             secret_urn = self.secret_reference_metadata.get(SECRET_URN, "")
             secret_id = self.secret_reference_metadata.get(SECRET_ID, "")
@@ -60,11 +58,11 @@ class IBMSecretManager(object):
 
             if secret_urn == "" or secret_id == "" or secret_type == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type, secret id, and secret urn cannot be empty", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f"{secret_urn}: secret type, secret id, and secret urn cannot be empty", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type {secret_type} is not supported", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f" {secret_urn}: secret type {secret_type} is not supported", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             self.secret_id = secret_id
             self.secret_urn = secret_urn
@@ -72,80 +70,75 @@ class IBMSecretManager(object):
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecretReferenceMetadataBulk() Got error: {str(err)}")
-            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, str(err))
+            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
     
     
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
-    def extractFromVaultAuthHeader(self, logging):
+    def extractFromVaultAuthHeader(self):
         try:
             decoded_auth_header = base64.b64decode(self.auth_string).decode('utf-8')
 
             auth_list = decoded_auth_header.split(";")
             if len(auth_list) < 2:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
             self.auth = {}
             for item in auth_list:
                 temp = item.split("=")
                 if len(temp) < 2:
                      target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                     return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                     return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
                 self.auth[temp[0]] = temp[1]
 
             if self.auth.get(VAULT_URL, "") == "" or self.auth.get(API_KEY, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             self.auth[IBM_CLOUD_IAM_URL] = os.environ.get('IBM_CLOUD_IAM_URL', DEFAULT_IBM_CLOUD_IAM_URL)
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function extractFromVaultAuthHeader(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "extractFromVaultAuthHeader()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
     # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code
-    def processRequestGetSecret(self, logging, is_bulk=False):
+    def processRequestGetSecret(self, is_bulk=False):
         try:
-            error, code = self.getAccessToken(logging)
+            error, code = self.getAccessToken()
             if error is not None:
                 return None, error, code
             
-            secret, error, code = self.getSecret(logging)
+            secret, error, code = self.getSecret()
             if error is not None:
                 return None, error, code
             
-            extracted_secret, error, code = self.extractSecret(secret, logging, is_bulk)
+            extracted_secret, error, code = self.extractSecret(secret, is_bulk)
             if error is not None:
                 return None, error, code
             
             return extracted_secret, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function processRequestGetSecret(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "processRequestGetSecret()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     # @returns {number} status code
-    def getAccessToken(self, logging):
+    def getAccessToken(self):
         try:
             token = None
             if self.auth[API_KEY] in CACHED_TOKEN:
                 token = CACHED_TOKEN[self.auth[API_KEY]]
             # get cached token and check if it is expired
-            cached_token = getCachedToken(self, token, logging)
+            cached_token = getCachedToken(self, token)
             if cached_token != "":
                 return None, None
 
@@ -159,17 +152,17 @@ class IBMSecretManager(object):
                 "apikey": self.auth[API_KEY]
             }
 
-            response = sendPostRequest(self.auth[IBM_CLOUD_IAM_URL], headers, data, logging)
+            response = sendPostRequest(self.auth[IBM_CLOUD_IAM_URL], headers, data)
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
-                logging.error(f"{self.transaction_id} - {self.secret_urn}: getAccessToken() Error {response.text} and status code {response.status_code} returned from {self.auth[IBM_CLOUD_IAM_URL]}")
-                return buildErrorPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                logException(self, "getAccessToken()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[IBM_CLOUD_IAM_URL]}")
+                return buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
             
             
             data = json.loads(response.text)
 
             if "access_token" not in data or "expiration" not in data:
-                return buildErrorPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             # store token to cache
             CACHED_TOKEN[self.auth[API_KEY]] = {}
@@ -178,44 +171,41 @@ class IBMSecretManager(object):
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getAccessToken(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "getAccessToken()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} response body
     # @returns {string} error message if any
     # @returns {number} status code    
-    def getSecret(self, logging):
+    def getSecret(self):
         try:
-            logging.debug(f"{self.transaction_id} - {self.secret_urn}: Sending request to get the secret")
+            logDebug(self, "getSecret()", FILE_NAME, "Sending request to get the secret")
             headers = {
                 "Authorization": "Bearer " + CACHED_TOKEN[self.auth[API_KEY]]["token"],
                 "Accept": "application/json"
             }
 
-            response = sendGetRequest(self.auth[VAULT_URL]+"/api/v2/secrets/"+self.secret_id, headers, None, logging)
+            response = sendGetRequest(self.auth[VAULT_URL]+"/api/v2/secrets/"+self.secret_id, headers, None)
             if response.status_code != HTTP_SUCCESS_CODE:
-                logging.error(f"{self.transaction_id} - {self.secret_urn}: getSecret() Error {response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
-                return None, buildErrorPayload("Error while establishing connection with Vault providers", E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                logException(self, "getSecret()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
+                return None, buildExceptionPayload("Error while establishing connection with Vault providers", E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             return response.text, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function getSecret(): {str(err)}")
-            return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "getSecret()", FILE_NAME, str(err))
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 
     # @param {string} secret — secret content in string
-    # @param {logging} logging — python logging handler
     # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} response - content of response
     # @returns {string} error message if any
     # @returns {number} status code
-    def extractSecret(self, secret, logging, is_bulk=False):
+    def extractSecret(self, secret, is_bulk=False):
         try:
-            logging.debug(f"{self.transaction_id} - {self.secret_urn}: Extracting secret data")
+            logDebug(self, "extractSecret()", FILE_NAME, "Extracting secret data")
             extracted_secret = json.loads(secret)
             ibm_secret_type = extracted_secret[SECRET_TYPE] 
 
@@ -252,8 +242,8 @@ class IBMSecretManager(object):
 
 
             if not get_secret:
-                logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecret() Failed to get secret content of IBM secret manager")
-                return None, buildErrorPayload(f"Failed to get secret content of IBM secret manager for secret type {self.secret_type}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                logException(self, "extractSecret()", FILE_NAME, "Failed to get secret content of IBM secret manager")
+                return None, buildExceptionPayload(f"Failed to get secret content of IBM secret manager for secret type {self.secret_type}", E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
             response["secret"] = response_secret_data
@@ -263,6 +253,6 @@ class IBMSecretManager(object):
 
             return response, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: Got error in function extractSecret(): {str(err)}")
-            return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "extractSecret()", FILE_NAME, str(err))
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
         
