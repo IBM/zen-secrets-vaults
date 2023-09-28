@@ -14,7 +14,9 @@ sys.path.append(parent)
 from vault_sdk.bridges_common.constants import *
 from vault_sdk.bridges.azure_key_vault.constants import *
 from vault_sdk.bridges.azure_key_vault.caches import *
-from vault_sdk.framework.utils import getCachedToken, buildErrorPayload, sendGetRequest, sendPostRequest
+from vault_sdk.framework.utils import getCachedToken, buildExceptionPayload, sendGetRequest, sendPostRequest, logException, logDebug, getCurrentFilename
+
+FILE_NAME = getCurrentFilename(__file__)
 
 class AzureKeyVault(object):
     def __init__(self, secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id):
@@ -23,34 +25,32 @@ class AzureKeyVault(object):
         self.secret_reference_metadata = secret_reference_metadata
         self.auth_string = auth_string
         self.transaction_id = transaction_id
+        self.secret_urn = secret_urn
 
-    # @param {logging} logging — python logging handler
-    #
+
     # @returns {string} error message if any
     #
     # this function extract secret_name from request query param secret_reference_metadata
-    def extractSecretReferenceMetadata(self, logging):
+    def extractSecretReferenceMetadata(self):
         try:
             decoded_secret_metadata = json.loads(base64.b64decode(self.secret_reference_metadata).decode('utf-8'))
             secret_name = decoded_secret_metadata.get(SECRET_NAME, "")
 
             if secret_name == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id}: {ERROR_SECRET_NAME_NOT_FOUND}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f"{ERROR_SECRET_NAME_NOT_FOUND}", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
             self.secret_name = secret_name
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error: {str(err)}")
-            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            logException(self, "extractSecretReferenceMetadata()", FILE_NAME, str(err))
+            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     #
-    # this function extract secret_id, secret_urn, and secret_type from request query param secret_reference_metadata
-    def extractSecretReferenceMetadataBulk(self, logging):
+    # this function extract secret_name, secret_urn, and secret_type from request query param secret_reference_metadata
+    def extractSecretReferenceMetadataBulk(self):
         try:
             secret_urn = self.secret_reference_metadata.get(SECRET_URN, "")
             secret_name = self.secret_reference_metadata.get(SECRET_NAME, "")
@@ -58,11 +58,11 @@ class AzureKeyVault(object):
 
             if secret_urn == "" or secret_name == "" or secret_type == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type, secret name, and secret urn cannot be empty", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f"{secret_urn}: secret type, secret name, and secret urn cannot be empty", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             if secret_type not in SECRET_TYPES[AZURE_KEY_VAULT]:
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildErrorPayload(f"{self.transaction_id} - {secret_urn}: secret type {secret_type} is not supported", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(f"{secret_urn}: secret type {secret_type} is not supported", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
 
             self.secret_name = secret_name
             self.secret_urn = secret_urn
@@ -70,79 +70,74 @@ class AzureKeyVault(object):
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_urn}: extractSecretReferenceMetadataBulk() Got error: {str(err)}")
-            return buildErrorPayload(str(err), E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, str(err))
+            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
-    # @param {logging} logging — python logging handler
-    #
+
     # @returns {string} error message if any
-    def extractFromVaultAuthHeader(self, logging):
+    def extractFromVaultAuthHeader(self):
         try:
             decoded_auth_header = base64.b64decode(self.auth_string).decode('utf-8')
             
             auth_list = decoded_auth_header.split(";")
             if len(auth_list) < 4:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE           
+                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE           
             self.auth = {}
             for item in auth_list:
                 temp = item.split("=")
                 if len(temp) < 2:
                     target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                    return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                    return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
                 self.auth[temp[0]] = temp[1]
 
             if self.auth.get(VAULT_URL, "") == "" or self.auth.get(TENANT_ID, "") == "" or self.auth.get(CLIENT_ID, "") == "" or self.auth.get(CLIENT_SECRET, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildErrorPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
             
             self.auth[AZURE_IAM_URL] = os.environ.get('AZURE_IAM_URL', DEFAULT_AZURE_IAM_URL)
             self.cache_key = self.auth[CLIENT_ID] + "~" + self.auth[CLIENT_SECRET] + "~" +self.auth[TENANT_ID]
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function extractFromVaultAuthHeader(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "extractFromVaultAuthHeader()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
     # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code
-    def processRequestGetSecret(self, logging, is_bulk=False):
+    def processRequestGetSecret(self, is_bulk=False):
         try:
-            error, code = self.getAccessToken(logging)
+            error, code = self.getAccessToken()
             if error is not None:
                 return None, error, code
             
-            secret, error, code = self.getSecret(logging)
+            secret, error, code = self.getSecret()
             if error is not None:
                 return None, error, code
             
-            extracted_secret, error, code = self.extractSecret(secret, logging, is_bulk)
+            extracted_secret, error, code = self.extractSecret(secret, is_bulk)
             if error is not None:
                 return None, error, code
             
             return extracted_secret, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function processRequestGetSecret(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "processRequestGetSecret()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {string} error message if any
     # @returns {number} status code
-    def getAccessToken(self, logging):
+    def getAccessToken(self):
         try:
-            logging.debug(f"{self.secret_name}: getCachedToken called")
             token = None
             if self.cache_key in CACHED_TOKEN:
                 token = CACHED_TOKEN[self.cache_key]
             # get cached token and check if it is expired
-            cached_token = getCachedToken(self, token, logging)
+            cached_token = getCachedToken(self, token)
             if cached_token != "":
                 return None, None
 
@@ -160,15 +155,15 @@ class AzureKeyVault(object):
 
             iam_url = f"{self.auth[AZURE_IAM_URL]}/{self.auth[TENANT_ID]}/oauth2/v2.0/token"
             
-            response = sendPostRequest(iam_url, headers, data, logging)
+            response = sendPostRequest(iam_url, headers, data)
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
-                logging.error(f"{self.transaction_id} - {self.secret_name}: Error {response.text} and status code {response.status_code} returned from {iam_url}")
-                return buildErrorPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                logException(self, "getAccessToken()", FILE_NAME, f"Error {response.text} and status code {response.status_code} returned from {iam_url}")
+                return buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
             data = json.loads(response.text)
 
             if "access_token" not in data or "expires_in" not in data:
-                return buildErrorPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
             
             expires_dur = data.get("expires_in", 0) 
             expiration = (datetime.now() + timedelta(seconds=expires_dur)).timestamp()
@@ -180,32 +175,30 @@ class AzureKeyVault(object):
 
             return None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function getAccessToken(): {str(err)}")
-            return buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "getAccessToken()", FILE_NAME, str(err))
+            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
-    # @param {logging} logging — python logging handler
-    #
     # @returns {dict} extracted_secret - secret in python dict format
     # @returns {string} error message if any
     # @returns {number} status code 
-    def getSecret(self, logging):
+    def getSecret(self):
         try:
-            logging.debug(f"{self.secret_name}: Sending request to get the secret")
+            logDebug(self, "getSecret()", FILE_NAME, "Sending request to get the secret")
             headers = {
                 "Authorization": "Bearer " + CACHED_TOKEN[self.cache_key]["token"],
                 "Accept": "application/json"
             }
 
-            response = sendGetRequest(self.auth[VAULT_URL]+"/secrets/"+self.secret_name+"?api-version=7.3", headers, None, logging)
+            response = sendGetRequest(self.auth[VAULT_URL]+"/secrets/"+self.secret_name+"?api-version=7.3", headers, None)
             if response.status_code != HTTP_SUCCESS_CODE:
-                logging.error(f"{self.transaction_id} - {self.secret_name}:Error {response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
-                return None, buildErrorPayload("Error while establishing connection with Vault providers", E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                logException(self, "getSecret()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
+                return None, buildExceptionPayload("Error while establishing connection with Vault providers", E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             return response.text, None, None
         except Exception as err: 
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function getSecret(): {str(err)}")
-            return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "getSecret()", FILE_NAME, str(err))
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
 
     # Return certificate and Secret value from the input_string
     def extractCertKeyValue(self, input_string):
@@ -238,15 +231,14 @@ class AzureKeyVault(object):
         return cert_value, key_value
 
     # @param {string} secret — secret content in string
-    # @param {logging} logging — python logging handler
     # @param {bool} is_bulk — true if this is a bulk request
     #
     # @returns {dict} response - content of response
     # @returns {string} error message if any
     # @returns {number} status code
-    def extractSecret(self, secret, logging, is_bulk=False):
+    def extractSecret(self, secret, is_bulk=False):
         try:
-            logging.debug(f"{self.secret_name}: Extracting secret data")
+            logDebug(self, "getSecret()", FILE_NAME, "Extracting secret data")
             
             get_secret = False
             secret_type = ""
@@ -259,12 +251,12 @@ class AzureKeyVault(object):
             secret_type = self.secret_type.lower()
             response_secret_data = {}
             if content_type == pkcs12:
-                return None, buildErrorPayload(UNSUPPORTED_TYPE_PKCS12, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return None, buildExceptionPayload(UNSUPPORTED_TYPE_PKCS12, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
             
             if secret_type == "credentials":
                 creds_value = json.loads(secret_value)
                 if not isinstance(creds_value, dict): 
-                    return None, buildErrorPayload(INVALID_JSON_FORMAT_ERROR, E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                    return None, buildExceptionPayload(INVALID_JSON_FORMAT_ERROR, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
                 username = creds_value.get("username", "")
                 password = creds_value.get("password", "")
                 response_secret_data = {"username": username, "password": password}
@@ -303,7 +295,7 @@ class AzureKeyVault(object):
                     get_secret = True
 
             if not get_secret:
-                return None, buildErrorPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self.transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                return None, buildExceptionPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
             response["secret"] = response_secret_data
@@ -312,5 +304,5 @@ class AzureKeyVault(object):
 
             return response, None, None
         except Exception as err:
-            logging.error(f"{self.transaction_id} - {self.secret_name}: Got error in function extractSecret(): {str(err)}")
-            return None, buildErrorPayload(INTERNAL_SERVER_ERROR, E_9000, self.transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            logException(self, "extractSecret()", FILE_NAME, str(err))
+            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
