@@ -27,7 +27,6 @@
                 "label": "SSL certificate"
             }
         ],
-        "bridge_url": "https://vault-bridge-hashicorp.cpd-instance.svc.cluster.local",
         "label": "Azure Key Vault",
         "description": "Azure Key Vault",
         "json_schema": {
