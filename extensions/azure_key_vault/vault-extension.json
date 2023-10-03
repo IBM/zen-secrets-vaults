@@ -33,7 +33,6 @@
         "json_schema": {
             "type": "object",
             "required": [
-                "iam_url",
                 "bridge_url",
                 "vault_url",
                 "tenant_id",
@@ -46,14 +45,6 @@
                 "client_secret"
             ],
             "properties": {
-                "iam_url": {
-                    "type": "string",
-                    "label": "IAM URL",
-                    "placeholder": "Azure IAM URL",
-                    "UIcomponent": "TextArea",
-                    "alignment": "details_section",
-                    "sequence": 1
-                },
                 "bridge_url": {
                     "type": "string",
                     "label": "Bridge URL",
