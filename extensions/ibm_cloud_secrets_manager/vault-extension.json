@@ -23,7 +23,6 @@
                 "label": "SSL certificate"
             }
         ],
-        "bridge_url": "https://vault-bridge-hashicorp.cpd-instance.svc.cluster.local",
         "label": "IBM Cloud Secrets Manager",
         "description": "This Bridge integrates Cloud Pak with IBM Cloud Secrets Manager",
         "json_schema": {
