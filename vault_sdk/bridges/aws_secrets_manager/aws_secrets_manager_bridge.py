@@ -349,7 +349,10 @@ class AWSSecretsManager(object):
                 return None, buildExceptionPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
-            response["secret"] = response_secret_data
+            if self.secret_type != "key" and self.secret_type != "token":
+                response["secret"][self.secret_type] = response_secret_data
+            else:
+                response["secret"] = response_secret_data
             if is_bulk:
                 response[SECRET_URN] = self.secret_urn
 
