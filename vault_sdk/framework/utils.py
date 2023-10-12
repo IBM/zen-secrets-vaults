@@ -1,11 +1,16 @@
 
 import requests
 from datetime import datetime, timedelta
+import cryptography.hazmat.backends
+from cryptography.hazmat.primitives import serialization
 import os
 import time
 import json
 import sys
+import jwt
 import logging
+from jwt import InvalidTokenError
+from pathlib import Path
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -27,6 +32,84 @@ FILE_NAME = getCurrentFilename(__file__)
 
 LOGGER = logging.getLogger("vaults")
 
+# @sets env variable PUBLIC_KEY_ERROR_MESSAGE
+# @sets env variable PUBLIC_KEY
+def load_jwt_public_keys():
+    public_key_path = os.getenv(JWT_PUBLIC_KEY_PATH)
+    if not public_key_path:
+        raise RuntimeError("JWT_PUBLIC_KEY_PATH environment variable is not set")
+
+    pem_file = Path(public_key_path)
+
+    if not pem_file.is_file():
+        raise RuntimeError(f"No such file: {public_key_path}")
+
+    try:
+        with pem_file.open('r') as f:
+            public_key_str = f.read()
+        global JWT_PUBLIC_KEY_VALUE 
+        JWT_PUBLIC_KEY_VALUE = serialization.load_pem_public_key(public_key_str.encode(), backend=cryptography.hazmat.backends.default_backend())
+    except Exception as e: 
+        raise RuntimeError(f"Got error in function load_jwt_public_keys(): {str(e)}")
+
+
+# @param auth_header
+#
+# @returns {string} extracted token
+# @returns {string} error message if any
+def extractBearerToken(auth_header):
+
+    parts = auth_header.split()
+
+    if len(parts) == 2 and parts[0] == "Bearer":
+        token = parts[1]
+        return token, None, None
+    else:
+        target = {"name": AUTHORIZATION_HEADER, "type": "header"}
+        return "", buildFrameworkExceptionPayload(f"Invalid Authorization header format", E_10501, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+
+# @param {flask.request} request — incoming request
+# @param {logging} logging — python logging handler
+#
+# @returns {string} Payload
+# @returns {string} error message if any
+# @returns {number} status code
+def validateJWT(token, public_key, transaction_id):
+
+    exceptionTarget = {"name": AUTHORIZATION_HEADER, "type": "header"}
+
+    try:
+        payload = jwt.decode(token, public_key, algorithms=["RS256"], audience=ZEN_VAULT_BRIDGE)
+
+        return payload, None, None
+
+    except InvalidTokenError as e:
+        return None, buildFrameworkExceptionPayload(f"{transaction_id}: Invalid token: {e}", E_10001, transaction_id, HTTP_UNAUTHORIZED, exceptionTarget), HTTP_UNAUTHORIZED
+    except Exception as e:   
+        logFrameworkException(transaction_id, "validateJWT()", FILE_NAME, f"Got error in function validateJWT(): {str(e)}")
+        return None, buildFrameworkExceptionPayload(f"{transaction_id}: An error occurred: {e}", E_10900, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE, exceptionTarget), HTTP_UNAUTHORIZED
+
+
+
+# @param {any} HttpHeader
+#
+# @returns {string} token
+# @returns {string} error message if any
+# @returns {number} status code
+def Authenticate(HttpHeader):
+    auth_header = HttpHeader.get(AUTHORIZATION_HEADER)
+    transaction_id = HttpHeader.get(TRANSACTION_ID_HEADER)
+    token, error, code = extractBearerToken(auth_header)
+    if error is not None:
+        return None, error, code
+    
+    public_key = JWT_PUBLIC_KEY_VALUE
+     
+    token, error, code = validateJWT(token, public_key, transaction_id)
+    if error is not None:
+        return None, error, code
+    return  token, None, None 
+
 # @param {flask.request} request — incoming request
 #
 # @returns {string} vault type
@@ -39,6 +122,8 @@ def validateParams(request):
         secret_type = request.args.get(SECRET_TYPE, "")
         vault_auth = request.headers.get(VAULT_AUTH_HEADER, "")
         transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
+        authorization_header = request.headers.get(AUTHORIZATION_HEADER, "")
+
 
         if secret_reference_metadata == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
@@ -52,7 +137,11 @@ def validateParams(request):
             target = {"name": VAULT_AUTH_HEADER, "type": "header"}
             return None, None, None, None, buildFrameworkExceptionPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
-        return secret_reference_metadata, secret_type, vault_auth, transaction_id, None, None
+        if authorization_header == "":
+            target = {"name": AUTHORIZATION_HEADER, "type": "header"}
+            return None, None, None, None, buildFrameworkExceptionPayload(f"{transaction_id}: Authorization header is not found", E_10001, transaction_id, HTTP_UNAUTHORIZED, target), HTTP_UNAUTHORIZED
+        
+        return secret_reference_metadata, secret_type, vault_auth, authorization_header, transaction_id, None, None
     except Exception as err: 
         logFrameworkException(transaction_id, "validateParams()", FILE_NAME, str(err))
         return None, None, None, None, buildFrameworkExceptionPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
@@ -69,6 +158,7 @@ def validateParamsForBulkRequest(request):
         secret_reference_metadata = request.args.get(SECRET_REFERENCE_METADATA, "")
         vault_auth = request.headers.get(VAULT_AUTH_HEADER, "")
         transaction_id = request.headers.get(TRANSACTION_ID_HEADER, "No transaction ID")
+        authorization_header = request.headers.get(AUTHORIZATION_HEADER, "")
 
         if secret_reference_metadata == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
@@ -78,7 +168,11 @@ def validateParamsForBulkRequest(request):
             target = {"name": VAULT_AUTH_HEADER, "type": "header"}
             return None, None, None, buildFrameworkExceptionPayload(f"{transaction_id}: Vault auth header is not found", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
         
-        return secret_reference_metadata, vault_auth, transaction_id, None, None
+        if authorization_header == "":
+            target = {"name": AUTHORIZATION_HEADER, "type": "header"}
+            return None, None, None, None, buildFrameworkExceptionPayload(f"{transaction_id}: Authorization header is not found", E_10001, transaction_id, HTTP_UNAUTHORIZED, target), HTTP_UNAUTHORIZED
+        
+        return secret_reference_metadata, vault_auth, authorization_header, transaction_id, None, None
     except Exception as err: 
         logFrameworkException(transaction_id, "validateParamsForBulkRequest()", FILE_NAME, str(err))
         return None, None, None, buildFrameworkExceptionPayload(str(err), E_9000, transaction_id, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE

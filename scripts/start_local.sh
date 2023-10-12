@@ -10,6 +10,7 @@
 
 export TLS_CERTITICATE_FILE_PATH="../certs/key.pem"
 export TLS_KEY_FILE_PATH="../certs/cert.pem"
+export JWT_PUBLIC_KEY_PATH="../certs/jwt/public.pem"
 
 cd ./vault_sdk
 source env/bin/activate
