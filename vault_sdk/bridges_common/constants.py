@@ -11,8 +11,11 @@ SECRET_TYPES = {
     AWS_SECRETS_MANAGER: ["credentials", "certificate", "generic", "key", "token"],
     AZURE_KEY_VAULT: ["credentials", "certificate", "generic", "key", "token"]
 }
+JWT_PUBLIC_KEY_PATH = "JWT_PUBLIC_KEY_PATH"
+ZEN_VAULT_BRIDGE = "ZEN-VAULT-BRIDGE"
 
 # requests constants
+AUTHORIZATION_HEADER = "Authorization"
 VAULT_URL = "vault_url"
 SECRET_REFERENCE_METADATA = "secret_reference_metadata"
 VAULT_TYPE = "vault_type"
@@ -30,6 +33,7 @@ ERROR_INVALID_IAM_URL = "IAM URL is invalid"
 # error codes
 HTTP_SUCCESS_CODE = 200
 HTTP_BAD_REQUEST_CODE = 400
+HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN_CODE = 403
 HTTP_NOT_FOUND_CODE = 404
 HTTP_INTERNAL_SERVER_ERROR_CODE = 500
@@ -40,6 +44,9 @@ INTERNAL_SERVER_ERROR = "Internal server error"
 
 E_1000 = "vault_bridge_request_e_1000"
 E_9000 = "vault_bridge_request_e_9000"
+E_10001 = "vaultbridgesdk_e_10001"
+E_10501= "vaultbridgesdk_e_10501"
+E_10900 = "vaultbridgesdk_e_10900"
 
 
 

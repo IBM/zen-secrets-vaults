@@ -1,6 +1,6 @@
 from flask import Flask, request, json
 import logging
-from framework.utils import validateParams, validateParamsForBulkRequest, buildExceptionResponse, buildFrameworkExceptionPayload, \
+from framework.utils import Authenticate, validateParams, validateJWT, validateParamsForBulkRequest, buildExceptionResponse, buildFrameworkExceptionPayload, \
                             bulkThreadFunction, logFrameworkDebug, logFrameworkException, getCurrentFilename
 from bridges_common.constants import *
 from bridges_common.bridge_lookup import CLASS_LOOKUP
@@ -28,7 +28,6 @@ FILE_NAME = getCurrentFilename(__file__)
 def health():
     return json.dumps({"status": "OK"})
 
-
 # GET /v2/vault-bridges/<vault_type>/secrets/<secret_urn>
 # @url_param {string} vault_type - value from {ibm-secret-manager|aws-secrets-manager|azure-kv-vault}
 # @url_param {string} secret_urn 
@@ -44,12 +43,17 @@ def health():
 @app.route("/v2/vault-bridges/<vault_type>/secrets/<secret_urn>", methods=["GET"])
 def get_secret(vault_type, secret_urn):
 
-    secret_reference_metadata, secret_type, auth_string, transaction_id, error, code = validateParams(request)
+    secret_reference_metadata, secret_type, auth_string, auth_header, transaction_id, error, code = validateParams(request)
     if error is not None:
         return buildExceptionResponse(app, error, code)
     
-    logFrameworkDebug(transaction_id, "get_secret()", FILE_NAME, f"Receiving request for secret {secret_urn} with vault type {vault_type}")
+    logFrameworkDebug(transaction_id, "get_secret()", FILE_NAME, f"Receiving request for secret {secret_urn} with vault type {vault_type}") 
     
+    HttpHeader = request.headers
+    _, error, code = Authenticate(HttpHeader)
+    if error is not None:
+        return buildExceptionResponse(app, error, code)  
+
     if vault_type not in VAULT_TYPES:
         target = {"name": VAULT_TYPE, "type": "parameter"}
         return buildExceptionResponse(app, buildFrameworkExceptionPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE)
@@ -87,9 +91,14 @@ def get_secret(vault_type, secret_urn):
 @app.route("/v2/vault-bridges/<vault_type>/secrets/bulk", methods=["GET"])
 def get_bulk_secret(vault_type):
 
-    secret_reference_metadata, auth_string, transaction_id, error, code = validateParamsForBulkRequest(request)
+    secret_reference_metadata, auth_string, auth_header,transaction_id, error, code = validateParamsForBulkRequest(request)
     if error is not None:
         return buildExceptionResponse(app, error, code)
+    
+    HttpHeader = request.headers
+    _, error, code = Authenticate(HttpHeader)
+    if error is not None:
+        return buildExceptionResponse(app, error, code)  
     
     if vault_type not in VAULT_TYPES:
         target = {"name": VAULT_TYPE, "type": "parameter"}
