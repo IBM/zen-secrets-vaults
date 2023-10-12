@@ -242,7 +242,11 @@ class IBMSecretManager(object):
                 return None, buildExceptionPayload(f"Failed to get secret content of IBM secret manager for secret type {self.secret_type}", E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
 
             response = {"secret": {}}
-            response["secret"] = response_secret_data
+            if self.secret_type != "key":
+                response["secret"][self.secret_type] = response_secret_data
+            else:
+                response["secret"] = response_secret_data
+
             if is_bulk:
                 response[SECRET_URN] = self.secret_urn
 
