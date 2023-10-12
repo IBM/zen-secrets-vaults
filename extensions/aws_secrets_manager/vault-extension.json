@@ -34,7 +34,6 @@
             "required": [
                 "bridge_url",
                 "vault_url",
-                "region",
                 "access_key_id",
                 "secret_access_key"
             ],
@@ -59,14 +58,6 @@
                     "UIcomponent": "TextArea",
                     "alignment": "details_section",
                     "sequence": 2
-                },
-                "region": {
-                    "type": "string",
-                    "label": "Region",
-                    "placeholder": "AWS Region",
-                    "UIcomponent": "TextArea",
-                    "alignment": "details_section",
-                    "sequence": 3
                 },
                 "access_key_id": {
                     "type": "string",
