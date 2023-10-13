@@ -311,15 +311,21 @@ class AWSSecretsManager(object):
                     get_secret = True
 
             elif secret_type == "key":
-                key_value = secret_string
-                response_secret_data = {"key": key_value}
-                if key_value:
+                key_value = json.loads(secret_string)
+                if not isinstance(key_value, dict): 
+                    return None, buildExceptionPayload(INVALID_JSON_FORMAT_ERROR, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                key = key_value.get("key", "")
+                response_secret_data = {"key": key}
+                if key:
                     get_secret = True
 
             elif secret_type == "token":
-                token_value = secret_string
-                response_secret_data = {"token": token_value}
-                if token_value:
+                token_value = json.loads(secret_string)
+                if not isinstance(token_value, dict): 
+                    return None, buildExceptionPayload(INVALID_JSON_FORMAT_ERROR, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                token = token_value.get("token", "")
+                response_secret_data = {"token": token}
+                if token:
                     get_secret = True
 
             elif secret_type == "certificate":
