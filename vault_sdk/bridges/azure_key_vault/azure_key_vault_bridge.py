@@ -13,6 +13,7 @@ sys.path.append(parent)
 
 from vault_sdk.bridges_common.constants import *
 from vault_sdk.bridges.azure_key_vault.constants import *
+from vault_sdk.bridges.azure_key_vault.error_codes import COMPONENT_EXCEPTIONS
 from vault_sdk.framework.utils import getCachedToken, saveTokenInCache, buildExceptionPayload, sendGetRequest, sendPostRequest, logException, logDebug, getCurrentFilename
 
 FILE_NAME = getCurrentFilename(__file__)
@@ -37,13 +38,13 @@ class AzureKeyVault(object):
 
             if secret_name == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(f"{ERROR_SECRET_NAME_NOT_FOUND}", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21102"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21102"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21102"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21102"]["http_status_code"]
             
             self.secret_name = secret_name
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadata()", FILE_NAME, str(err))
-            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
 
     # @returns {string} error message if any
@@ -57,11 +58,11 @@ class AzureKeyVault(object):
 
             if secret_urn == "" or secret_name == "" or secret_type == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(f"{secret_urn}: secret type, secret name, and secret urn cannot be empty", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21200"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21200"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21200"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21200"]["http_status_code"]
 
             if secret_type not in SECRET_TYPES[AZURE_KEY_VAULT]:
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(f"{secret_urn}: secret type {secret_type} is not supported", E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21103"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21103"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21103"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21103"]["http_status_code"]
 
             self.secret_name = secret_name
             self.secret_urn = secret_urn
@@ -70,7 +71,7 @@ class AzureKeyVault(object):
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, str(err))
-            return buildExceptionPayload(str(err), E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
 
     # @returns {string} error message if any
@@ -81,18 +82,18 @@ class AzureKeyVault(object):
             auth_list = decoded_auth_header.split(";")
             if len(auth_list) < 4:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE           
+                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["http_status_code"]         
             self.auth = {}
             for item in auth_list:
                 temp = item.split("=")
                 if len(temp) < 2:
                     target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                    return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                    return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21001"]["http_status_code"]
                 self.auth[temp[0]] = temp[1]
 
             if self.auth.get(VAULT_URL, "") == "" or self.auth.get(TENANT_ID, "") == "" or self.auth.get(CLIENT_ID, "") == "" or self.auth.get(CLIENT_SECRET, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(ERROR_MISSING_VAULT_HEADER, E_1000, self, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE
+                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21002"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21002"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21002"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21002"]["http_status_code"]
             
             self.auth[AZURE_IAM_URL] = os.environ.get('AZURE_IAM_URL', DEFAULT_AZURE_IAM_URL)
             self.cache_key = self.auth[CLIENT_ID] + "~" + self.auth[CLIENT_SECRET] + "~" +self.auth[TENANT_ID]
@@ -100,7 +101,7 @@ class AzureKeyVault(object):
             return None, None
         except Exception as err: 
             logException(self, "extractFromVaultAuthHeader()", FILE_NAME, str(err))
-            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
 
     # @param {bool} is_bulk — true if this is a bulk request
@@ -125,7 +126,7 @@ class AzureKeyVault(object):
             return extracted_secret, None, None
         except Exception as err: 
             logException(self, "processRequestGetSecret()", FILE_NAME, str(err))
-            return buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
 
     # @returns {string} error message if any
@@ -154,11 +155,12 @@ class AzureKeyVault(object):
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getAccessToken()", FILE_NAME, f"Error {response.text} and status code {response.status_code} returned from {iam_url}")
-                return None, buildExceptionPayload(ERROR_ESTABLISHING_CONNECTION, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21500"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21500"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21500"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21500"]["http_status_code"]
             data = json.loads(response.text)
 
             if "access_token" not in data or "expires_in" not in data:
-                return None, buildExceptionPayload(ERROR_TOKEN_NOT_RETURNED, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                logException(self, "getAccessToken()", FILE_NAME, ERROR_TOKEN_NOT_RETURNED)
+                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
             
             # store token to cache
             expires_dur = data.get("expires_in", 0) 
@@ -169,7 +171,7 @@ class AzureKeyVault(object):
             return data["access_token"], None, None
         except Exception as err: 
             logException(self, "getAccessToken()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
 
     # @returns {dict} extracted_secret - secret in python dict format
@@ -186,12 +188,12 @@ class AzureKeyVault(object):
             response = sendGetRequest(self.auth[VAULT_URL]+"/secrets/"+self.secret_name+"?api-version=7.3", headers, None)
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getSecret()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
-                return None, buildExceptionPayload("Error while establishing connection with Vault providers", E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21501"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21501"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21501"]["http_status_code"]
 
             return response.text, None, None
         except Exception as err: 
             logException(self, "getSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
     # Return certificate and Secret value from the input_string
     def extractCertKeyValue(self, input_string):
@@ -244,12 +246,14 @@ class AzureKeyVault(object):
             secret_type = self.secret_type.lower()
             response_secret_data = {}
             if content_type == pkcs12:
-                return None, buildExceptionPayload(UNSUPPORTED_TYPE_PKCS12, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                logException(self, "extractSecret()", FILE_NAME, UNSUPPORTED_TYPE_PKCS12)
+                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
             
             if secret_type == "credentials":
                 creds_value = json.loads(secret_value)
                 if not isinstance(creds_value, dict): 
-                    return None, buildExceptionPayload(INVALID_JSON_FORMAT_ERROR, E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                    logException(self, "extractSecret()", FILE_NAME, INVALID_JSON_FORMAT_ERROR)
+                    return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
                 username = creds_value.get("username", "")
                 password = creds_value.get("password", "")
                 response_secret_data = {"username": username, "password": password}
@@ -288,7 +292,8 @@ class AzureKeyVault(object):
                     get_secret = True
 
             if not get_secret:
-                return None, buildExceptionPayload(f"failed to get secret content for secret content for secret_type {secret_type}", E_1000, self, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE
+                logException(self, "extractSecret()", FILE_NAME, f"failed to get secret content for secret content for secret_type {secret_type}")
+                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]
 
             response = {"secret": {}}
             if self.secret_type != "key" and self.secret_type != "token":
@@ -301,4 +306,4 @@ class AzureKeyVault(object):
             return response, None, None
         except Exception as err:
             logException(self, "extractSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(INTERNAL_SERVER_ERROR, E_9000, self, HTTP_INTERNAL_SERVER_ERROR_CODE), HTTP_INTERNAL_SERVER_ERROR_CODE
+            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_21900"]["http_status_code"]

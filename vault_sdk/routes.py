@@ -1,9 +1,10 @@
 from flask import Flask, request, json
 import logging
-from framework.utils import Authenticate, validateParams, validateJWT, validateParamsForBulkRequest, buildExceptionResponse, buildFrameworkExceptionPayload, \
+from framework.utils import authenticate, validateParams, validateParamsForBulkRequest, buildExceptionResponse, buildFrameworkExceptionPayload, \
                             bulkThreadFunction, logFrameworkDebug, logFrameworkException, getCurrentFilename
 from bridges_common.constants import *
 from bridges_common.bridge_lookup import CLASS_LOOKUP
+from framework.error_codes import COMPONENT_EXCEPTIONS
 import os
 import base64
 import threading
@@ -43,24 +44,24 @@ def health():
 @app.route("/v2/vault-bridges/<vault_type>/secrets/<secret_urn>", methods=["GET"])
 def get_secret(vault_type, secret_urn):
 
-    secret_reference_metadata, secret_type, auth_string, auth_header, transaction_id, error, code = validateParams(request)
+    secret_reference_metadata, secret_type, auth_string, transaction_id, error, code = validateParams(request)
     if error is not None:
         return buildExceptionResponse(app, error, code)
     
     logFrameworkDebug(transaction_id, "get_secret()", FILE_NAME, f"Receiving request for secret {secret_urn} with vault type {vault_type}") 
     
     HttpHeader = request.headers
-    _, error, code = Authenticate(HttpHeader)
+    _, error, code = authenticate(HttpHeader)
     if error is not None:
         return buildExceptionResponse(app, error, code)  
 
     if vault_type not in VAULT_TYPES:
         target = {"name": VAULT_TYPE, "type": "parameter"}
-        return buildExceptionResponse(app, buildFrameworkExceptionPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE)
+        return buildExceptionResponse(app, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["message"], COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["http_status_code"])
     
     if secret_type not in SECRET_TYPES[vault_type]:
         target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-        return buildExceptionResponse(app, buildFrameworkExceptionPayload(f"{transaction_id}: secret type {secret_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE)
+        return buildExceptionResponse(app, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10003"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10003"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10003"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10003"]["http_status_code"])
 
     vault = CLASS_LOOKUP[vault_type](secret_reference_metadata, secret_type, secret_urn, auth_string, transaction_id)
     error, code = vault.extractFromVaultAuthHeader()
@@ -91,24 +92,23 @@ def get_secret(vault_type, secret_urn):
 @app.route("/v2/vault-bridges/<vault_type>/secrets/bulk", methods=["GET"])
 def get_bulk_secret(vault_type):
 
-    secret_reference_metadata, auth_string, auth_header,transaction_id, error, code = validateParamsForBulkRequest(request)
+    secret_reference_metadata, auth_string, transaction_id, error, code = validateParamsForBulkRequest(request)
     if error is not None:
         return buildExceptionResponse(app, error, code)
     
     HttpHeader = request.headers
-    _, error, code = Authenticate(HttpHeader)
+    _, error, code = authenticate(HttpHeader)
     if error is not None:
         return buildExceptionResponse(app, error, code)  
     
     if vault_type not in VAULT_TYPES:
         target = {"name": VAULT_TYPE, "type": "parameter"}
-        return buildExceptionResponse(app, buildFrameworkExceptionPayload(f"{transaction_id}: vault type {vault_type} is not supported", E_1000, transaction_id, HTTP_BAD_REQUEST_CODE, target), HTTP_BAD_REQUEST_CODE)
-    
+        return buildExceptionResponse(app, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["message"], COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultsdkbridge_e_10002"]["http_status_code"])
     try:
         secret_reference_metadata_list = json.loads(base64.b64decode(secret_reference_metadata).decode('utf-8'))
     except Exception as err: 
         logFrameworkException(transaction_id, "get_bulk_secret()", FILE_NAME, f"{transaction_id}: get_bulk_secret() Got error: {str(err)}")
-        return buildExceptionResponse(app, buildFrameworkExceptionPayload(str(err), E_9000, transaction_id, HTTP_BAD_REQUEST_CODE), HTTP_BAD_REQUEST_CODE)
+        return buildExceptionResponse(app, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"])
     
     response_data = []
     index = 0

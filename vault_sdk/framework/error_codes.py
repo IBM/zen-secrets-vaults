@@ -47,7 +47,7 @@ COMPONENT_EXCEPTIONS = {
     "vaultbridgesdk_e_10900" : {
         "code" : "vaultbridgesdk_e_10900",
         "http_status_code" : "500",
-        "message" : "Encountered internal exception while processing request, check vault brige log for further details.",
+        "message" : "Encountered internal exception while processing request, check vault bridge log for further details.",
         "reason" : "Encountered internal exception while processing request",
         "action" : "Check the vault bridge logs for the further error details."
     }  
