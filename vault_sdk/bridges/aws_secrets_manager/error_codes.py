@@ -1,7 +1,8 @@
 # This name will appears exception_info.md
-VAULT_TYPE = "AWS Secrets Manager"
+COMPONENT_NAME = "AWS Secrets Manager"
+COMPONENT_TYPE = "Vault Bridge"
 
-VAULT_BRIDGE_EXCEPTIONS = {
+COMPONENT_EXCEPTIONS = {
     "vaultbridgesdk_e_20001" : {
         "code" : "vaultbridgesdk_e_20001",
         "http_status_code" : 404,
@@ -56,13 +57,13 @@ VAULT_BRIDGE_EXCEPTIONS = {
         "http_status_code" : 500,
         "message" : "Received exception from the vault, check vault bridge log for further details.",
         "reason" : "Received exception from the vault when processing the request.",
-        "user_action" : "Check the vault bridge logs for the further error details."
+        "action" : "Check the vault bridge logs for the further error details."
     },
     "vaultbridgesdk_e_20900" : {
         "code" : "vaultbridgesdk_e_20900",
         "http_status_code" : 500,
         "message" : "Encountered internal exception while processing the request, check the vault bridge logs for the further details.",
         "reason" : "Encountered internal exception while processing the request.",
-        "user_action" : "Check the vault bridge logs for the further error details."
+        "action" : "Check the vault bridge logs for the further error details."
     }
 }
