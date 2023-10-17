@@ -14,7 +14,7 @@ def generate_jwt():
             private_key = key_file.read()
 
         currentTime = datetime.utcnow()
-        expiresAt = currentTime + timedelta(minutes=60)
+        expiresAt = currentTime + timedelta(minutes=1440)
 
         epoch = datetime.utcfromtimestamp(0)
         iat = (currentTime - epoch).total_seconds()
