@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "$0")" || exit
 
@@ -17,7 +18,7 @@ fi
 
 echo "Generating JWT..."
 
-TOKEN=$(python3 generate_jwt.py)
+TOKEN=$(python3 utils/generate_test_jwt.py)
 EXIT_CODE=$?
 
 deactivate
