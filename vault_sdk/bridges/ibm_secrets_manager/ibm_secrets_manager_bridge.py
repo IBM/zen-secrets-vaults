@@ -26,6 +26,7 @@ class IBMSecretManager(object):
         self.auth_string = auth_string
         self.transaction_id = transaction_id
         self.secret_id = ""
+        self.error_codes = COMPONENT_EXCEPTIONS
 
 
     # @returns {string} error message if any
@@ -38,13 +39,13 @@ class IBMSecretManager(object):
 
             if secret_id == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22102"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22102"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22102"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22102"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_22102", self, target), HTTP_NOT_FOUND_CODE
             
             self.secret_id = secret_id
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadata()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 
     # @returns {string} error message if any
@@ -58,11 +59,11 @@ class IBMSecretManager(object):
 
             if secret_urn == "" or secret_id == "" or secret_type == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22200"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22200"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22200"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22200"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_22200", self, target), HTTP_NOT_FOUND_CODE
 
             if secret_type not in SECRET_TYPES[IBM_SECRETS_MANAGER]:
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22103"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22103"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22103"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22103"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_22103", self, target), HTTP_NOT_FOUND_CODE
 
             self.secret_id = secret_id
             self.secret_urn = secret_urn
@@ -71,7 +72,7 @@ class IBMSecretManager(object):
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
     
     
 
@@ -83,19 +84,19 @@ class IBMSecretManager(object):
             auth_list = decoded_auth_header.split(";")
             if len(auth_list) < 2:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_22001", self, target), HTTP_NOT_FOUND_CODE
             
             self.auth = {}
             for item in auth_list:
                 temp = item.split("=")
                 if len(temp) < 2:
                     target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                    return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22001"]["http_status_code"]
+                    return buildExceptionPayload("vaultbridgesdk_e_22001", self, target), HTTP_NOT_FOUND_CODE
                 self.auth[temp[0]] = temp[1]
 
             if self.auth.get(VAULT_URL, "") == "" or self.auth.get(API_KEY, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22002"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22002"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22002"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22002"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_22002", self, target), HTTP_NOT_FOUND_CODE
 
             self.auth[IBM_CLOUD_IAM_URL] = os.environ.get('IBM_CLOUD_IAM_URL', DEFAULT_IBM_CLOUD_IAM_URL)
             self.cache_key = self.auth[API_KEY]
@@ -103,7 +104,7 @@ class IBMSecretManager(object):
             return None, None
         except Exception as err: 
             logException(self, "extractFromVaultAuthHeader()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @param {bool} is_bulk — true if this is a bulk request
@@ -128,7 +129,7 @@ class IBMSecretManager(object):
             return extracted_secret, None, None
         except Exception as err: 
             logException(self, "processRequestGetSecret()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {string} token
@@ -154,14 +155,14 @@ class IBMSecretManager(object):
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getAccessToken()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[IBM_CLOUD_IAM_URL]}")
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_22501", self), HTTP_INTERNAL_SERVER_ERROR_CODE
             
             
             data = json.loads(response.text)
 
             if "access_token" not in data or "expiration" not in data:
                 logException(ERROR_TOKEN_NOT_RETURNED)
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             # store token to cache
             token = {"token": data["access_token"], "expiration": data["expiration"]}
@@ -170,7 +171,7 @@ class IBMSecretManager(object):
             return token["token"], None, None
         except Exception as err: 
             logException(self, "getAccessToken()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {string} response body
@@ -187,12 +188,12 @@ class IBMSecretManager(object):
             response = sendGetRequest(self.auth[VAULT_URL]+"/api/v2/secrets/"+self.secret_id, headers, None)
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getSecret()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22501"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_22501", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             return response.text, None, None
         except Exception as err: 
             logException(self, "getSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 
     # @param {string} secret — secret content in string
@@ -241,7 +242,7 @@ class IBMSecretManager(object):
 
             if not get_secret:
                 logException(self, "extractSecret()", FILE_NAME, "Failed to get secret content of IBM secret manager")
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             response = {"secret": {}}
             if self.secret_type != "key":
@@ -256,5 +257,5 @@ class IBMSecretManager(object):
             return response, None, None
         except Exception as err: 
             logException(self, "extractSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_22900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_22900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         

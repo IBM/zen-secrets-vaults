@@ -27,6 +27,7 @@ class AWSSecretsManager(object):
         self.auth_string = auth_string
         self.transaction_id = transaction_id
         self.secret_urn = secret_urn
+        self.error_codes = COMPONENT_EXCEPTIONS
     
     # @returns {string} error message if any
     #
@@ -39,13 +40,13 @@ class AWSSecretsManager(object):
 
             if secret_id == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20102"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20102"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20102"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20102"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20102", self, target), HTTP_NOT_FOUND_CODE
             
             self.secret_id = secret_id
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadata()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 
     # @returns {string} error message if any
@@ -59,11 +60,11 @@ class AWSSecretsManager(object):
 
             if secret_urn == "" or secret_id == "" or secret_type == "":
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20200"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20200"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20200"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20200"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20200", self, target), HTTP_NOT_FOUND_CODE
 
             if secret_type not in SECRET_TYPES[AWS_SECRETS_MANAGER]:
                 target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20103"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20103"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20103"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20103"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20103", self, target), HTTP_NOT_FOUND_CODE
 
             self.secret_id = secret_id
             self.secret_urn = secret_urn
@@ -72,7 +73,7 @@ class AWSSecretsManager(object):
             return None, None
         except Exception as err: 
             logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         
 # @extracts host, service, and region from the given AWS URL
     def extractFromVaultURL(self, url):
@@ -80,7 +81,7 @@ class AWSSecretsManager(object):
             missing_components = []
             if not url.startswith("https://"):
                 logException(self, "extractSecretReferenceMetadataBulk()", FILE_NAME, INVALID_VAULT_URL_ERROR.format('https://'))
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
             host = url[len("https://"):].strip().lower()
 
             components = host.split('.')
@@ -96,7 +97,7 @@ class AWSSecretsManager(object):
                 missing_components.append("region")
 
             if missing_components:
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20001", self), HTTP_NOT_FOUND_CODE
             self.host = host
             self.service = service
             self.region = region
@@ -105,7 +106,7 @@ class AWSSecretsManager(object):
 
         except Exception as err: 
             logException(self, "extractFromVaultURL()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {string} error message if any
@@ -116,18 +117,18 @@ class AWSSecretsManager(object):
             auth_list = decoded_auth_header.split(";")
             if len(auth_list) < 3:
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"]         
+                return buildExceptionPayload("vaultbridgesdk_e_20001", self, target), HTTP_NOT_FOUND_CODE         
             self.auth = {}
             for item in auth_list:
                 temp = item.split("=")
                 if len(temp) < 2:
                     target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                    return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20001"]["http_status_code"]
+                    return buildExceptionPayload("vaultbridgesdk_e_20001", self, target), HTTP_NOT_FOUND_CODE
                 self.auth[temp[0]] = temp[1]
 
             if self.auth.get(VAULT_URL, "") == "" or self.auth.get(AWS_ACCESS_KEY_ID, "") == "" or self.auth.get(AWS_SECRET_ACCESS_KEY, "") == "":
                 target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-                return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20002"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20002"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20002"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20002"]["http_status_code"]
+                return buildExceptionPayload("vaultbridgesdk_e_20002", self, target), HTTP_NOT_FOUND_CODE
 
             error, code = self.extractFromVaultURL(self.auth[VAULT_URL])
             if error is not None:
@@ -135,7 +136,7 @@ class AWSSecretsManager(object):
             return None, None
         except Exception as err: 
             logException(self, "extractFromVaultAuthHeader()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
         
     # Generates a HMAC signature for msg using the provided key
     def sign(self, key, msg):
@@ -143,7 +144,7 @@ class AWSSecretsManager(object):
             return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest(), None, None
         except Exception as err: 
             logException(self, "sign()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
     # Generates an AWS V4 Signature using a set of HMAC signing steps provided by AWS
     def generateSignature(self, key, dateStamp, regionName, serviceName):
@@ -164,7 +165,7 @@ class AWSSecretsManager(object):
             return kSigning, None, None
         except Exception as err: 
             logException(self, "generateSignature()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]     
+            return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE     
 
 
     # @param {bool} is_bulk — true if this is a bulk request
@@ -187,7 +188,7 @@ class AWSSecretsManager(object):
             return extracted_secret, None, None
         except Exception as err: 
             logException(self, "processRequestGetSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
     # Generates hashed payload, timestamp and authorization_header 
     def generateHeaders(self, payload):
@@ -226,7 +227,7 @@ class AWSSecretsManager(object):
 
         except Exception as err: 
             logException(self, "generateHeaders()", FILE_NAME, str(err))
-            return buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # @returns {dict} extracted_secret - secret in python dict format
@@ -253,13 +254,13 @@ class AWSSecretsManager(object):
             # return error if the request failed
             if response.status_code != HTTP_SUCCESS_CODE:
                 logException(self, "getSecret()", FILE_NAME, f"{response.text} and status code {response.status_code} returned from {self.auth[VAULT_URL]}")
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20500"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20500"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20500"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20500"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_20500", self), HTTP_INTERNAL_SERVER_ERROR_CODE
             
             return response.text, None, None
 
         except Exception as err: 
             logException(self, "getSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
     # Format certificate and Secret to replace " " with "\n" for each new line
@@ -279,7 +280,7 @@ class AWSSecretsManager(object):
         
         except Exception as err:
             logException(self, "formatCertKeyValue()", FILE_NAME, str(err))
-            return None, None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return None, None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
     # @param {string} secret — secret content in string
     # @param {bool} is_bulk — true if this is a bulk request
@@ -305,7 +306,7 @@ class AWSSecretsManager(object):
                 creds_value = json.loads(secret_string)
                 if not isinstance(creds_value, dict): 
                     logException(INVALID_JSON_FORMAT_ERROR)
-                    return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+                    return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
                 username = creds_value.get("username", "")
                 password = creds_value.get("password", "")
                 response_secret_data = {"username": username, "password": password}
@@ -317,7 +318,7 @@ class AWSSecretsManager(object):
                 key_value = json.loads(secret_string)
                 if not isinstance(key_value, dict): 
                     logException(INVALID_JSON_FORMAT_ERROR)
-                    return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+                    return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
                 key = key_value.get("key", "")
                 response_secret_data = {"key": key}
                 if key:
@@ -327,7 +328,7 @@ class AWSSecretsManager(object):
                 token_value = json.loads(secret_string)
                 if not isinstance(token_value, dict): 
                     logException(INVALID_JSON_FORMAT_ERROR)
-                    return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+                    return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
                 token = token_value.get("token", "")
                 response_secret_data = {"token": token}
                 if token:
@@ -358,7 +359,7 @@ class AWSSecretsManager(object):
 
             if not get_secret:
                 logException(f"failed to get secret content for secret content for secret_type {secret_type}")
-                return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+                return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
 
             response = {"secret": {}}
             if self.secret_type != "key" and self.secret_type != "token":
@@ -371,4 +372,4 @@ class AWSSecretsManager(object):
             return response, None, None
         except Exception as err:
             logException(self, "extractSecret()", FILE_NAME, str(err))
-            return None, buildExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["code"], self, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_20900"]["http_status_code"]
+            return None, buildExceptionPayload("vaultbridgesdk_e_20900", self), HTTP_INTERNAL_SERVER_ERROR_CODE
