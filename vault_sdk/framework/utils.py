@@ -17,7 +17,7 @@ parent = os.path.dirname(current)
 parent = os.path.dirname(parent)
 sys.path.append(parent)
 
-from vault_sdk.framework.error_codes import COMPONENT_EXCEPTIONS
+from vault_sdk.framework.error_codes import COMPONENT_EXCEPTIONS as framework_error_code
 from vault_sdk.bridges_common.constants import *
 from vault_sdk.framework import caches
 
@@ -29,6 +29,7 @@ VAULT_REQUEST_RETRY_BACKOFF_FACTOR = 0.5
 
 GIT_REPO_URL = os.environ.get('MOR_INFO_PREFIX', "https://github.com/IBM/zen-vault-bridge-sdk")
 ERROR_DOC_PATH = os.environ.get('ERROR_DOC_PATH', "/blob/main/docs/apidoc/error_codes.md")
+
 
 def getCurrentFilename(file):
     return os.path.basename(file)
@@ -70,7 +71,7 @@ def extractBearerToken(auth_header):
         return token, None, None
     else:
         target = {"name": AUTHORIZATION_HEADER, "type": "header"}
-        return "", buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["code"], "", COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["http_status_code"]
+        return "", buildFrameworkExceptionPayload("vaultbridgesdk_e_10001", "", target), HTTP_UNAUTHORIZED
 
 # @param {flask.request} request — incoming request
 # @param {logging} logging — python logging handler
@@ -88,10 +89,10 @@ def validateJWT(token, public_key, transaction_id):
         return payload, None, None
 
     except InvalidTokenError as e:
-        return None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["code"], "", COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["http_status_code"], exceptionTarget), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10001"]["http_status_code"]
+        return None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10001", "", exceptionTarget), HTTP_UNAUTHORIZED
     except Exception as e:   
         logFrameworkException(transaction_id, "validateJWT()", FILE_NAME, f"Got error in function validateJWT(): {str(e)}")
-        return None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["code"], "", COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"], exceptionTarget), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"]
+        return None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10900", "", exceptionTarget), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
 
@@ -131,24 +132,24 @@ def validateParams(request):
 
         if secret_reference_metadata == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-            return None, None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"]
+            return None, None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10503", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         if secret_type == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-            return None, None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10502"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10502"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10502"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10502"]["http_status_code"]
+            return None, None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10502", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
             target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-            return None, None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"]
+            return None, None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10501", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         if authorization_header == "":
             target = {"name": AUTHORIZATION_HEADER, "type": "header"}
-            return None, None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"]
+            return None, None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10501", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         return secret_reference_metadata, secret_type, vault_auth, transaction_id, None, None
     except Exception as err: 
         logFrameworkException(transaction_id, "validateParams()", FILE_NAME, str(err))
-        return None, None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"]
+        return None, None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10900", transaction_id), HTTP_INTERNAL_SERVER_ERROR_CODE
     
 
 # @param {flask.request} request — incoming request
@@ -166,20 +167,20 @@ def validateParamsForBulkRequest(request):
 
         if secret_reference_metadata == "":
             target = {"name": SECRET_REFERENCE_METADATA, "type": "query-param"}
-            return None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10503"]["http_status_code"]
+            return None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10503", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         if vault_auth == "":
             target = {"name": VAULT_AUTH_HEADER, "type": "header"}
-            return None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"]
+            return None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10501", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         if authorization_header == "":
             target = {"name": AUTHORIZATION_HEADER, "type": "header"}
-            return None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"], target), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10501"]["http_status_code"]
+            return None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10501", transaction_id, target), HTTP_BAD_REQUEST_CODE
         
         return secret_reference_metadata, vault_auth, transaction_id, None, None
     except Exception as err: 
         logFrameworkException(transaction_id, "validateParamsForBulkRequest()", FILE_NAME, str(err))
-        return None, None, None, buildFrameworkExceptionPayload(COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["message"], COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["code"], transaction_id, COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"]), COMPONENT_EXCEPTIONS["vaultbridgesdk_e_10900"]["http_status_code"]
+        return None, None, None, buildFrameworkExceptionPayload("vaultbridgesdk_e_10900", transaction_id), HTTP_INTERNAL_SERVER_ERROR_CODE
 
 
 # @param {string} vault_type — vault type
@@ -240,47 +241,43 @@ def buildExceptionResponse(app, message, code):
         )
 
 
-# @param {string} message - error message 
-# @param {string} code — error code
+# @param {string} error_code - error code in format of vaultsdkbridge_e_xxxxx 
 # @param {object} reqObj — reqObj
-# @param {int} status_code — status_code
 #
 # @returns {dict} - error dict
-def buildExceptionPayload(message, code, reqObj, status_code, target=None):
+def buildExceptionPayload(error_code, reqObj, target=None):
     trace = ""
     if reqObj != None:
         trace = reqObj.transaction_id
+        
     return {
         "errors": [
             {
-                "code": code,
-                "message":message,
-                "more_info": GIT_REPO_URL+ERROR_DOC_PATH+"#"+code,
+                "code": reqObj.error_codes[error_code]["code"],
+                "message": reqObj.error_codes[error_code]["message"],
+                "more_info": GIT_REPO_URL+ERROR_DOC_PATH+"#"+error_code,
                 "target": target,
             }
         ],
-        "status_code": status_code,
+        "status_code": reqObj.error_codes[error_code]["http_status_code"],
         "trace": trace
     }
 
 
-# @param {string} message - error message 
-# @param {string} code — error code
-# @param {string} trace — transaction id
-# @param {int} status_code — status_code
+# @param {string} error_code - error code in format of vaultsdkbridge_e_xxxxx 
 #
 # @returns {dict} - error dict
-def buildFrameworkExceptionPayload(message, code, trace, status_code, target=None):
+def buildFrameworkExceptionPayload(error_code, trace, target=None):
     return {
         "errors": [
             {
-                "code": code,
-                "message":message,
-                "more_info": GIT_REPO_URL+ERROR_DOC_PATH+"#"+code,
+                "code": framework_error_code[error_code]["code"],
+                "message": framework_error_code[error_code]["message"],
+                "more_info": GIT_REPO_URL+ERROR_DOC_PATH+"#"+error_code,
                 "target": target,
             }
         ],
-        "status_code": status_code,
+        "status_code": framework_error_code[error_code]["http_status_code"],
         "trace": trace
     }
 
