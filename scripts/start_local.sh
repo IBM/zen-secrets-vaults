@@ -6,8 +6,8 @@
 # export VAULT_REQUEST_RETRY_COUNT=5
 # export IBM_CLOUD_IAM_URL='https://iam.cloud.ibm.com/identity/token'
 # export AZURE_IAM_URL='https://login.microsoftonline.com'
-export GIT_REPO_URL='https://github.com/IBM/zen-vault-bridge-sdk'
-export ERROR_DOC_PATH='blob/main/docs/apidoc/error_codes.md'
+export GIT_REPO_URL='https://github.ibm.com/PrivateCloud-analytics/zen-vault-bridge-sdk'
+export ERROR_DOC_PATH='/blob/main/docs/apidoc/error_codes.md'
 
 
 export TLS_CERTITICATE_FILE_PATH="../certs/key.pem"
