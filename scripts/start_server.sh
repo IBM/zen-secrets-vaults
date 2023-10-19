@@ -3,6 +3,8 @@
 cert_path="--certfile /certs/key.pem"
 key_path="--keyfile /certs/cert.pem"
 export JWT_PUBLIC_KEY_PATH="../certs/jwt/public.pem"
+export GIT_REPO_URL='https://github.ibm.com/PrivateCloud-analytics/zen-vault-bridge-sdk'
+export ERROR_DOC_PATH='/blob/main/docs/apidoc/error_codes.md'
 
 if [ ! -z "$TLS_CERTITICATE_FILE_PATH" ] && [ ! -z "$TLS_KEY_FILE_PATH" ]; then
     cert_path="--certfile $TLS_CERTITICATE_FILE_PATH"
