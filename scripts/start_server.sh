@@ -1,8 +1,7 @@
 #!/bin/sh
 
-cert_path="--certfile /certs/key.pem"
-key_path="--keyfile /certs/cert.pem"
-export JWT_PUBLIC_KEY_PATH="../certs/jwt/public.pem"
+cert_path="--certfile /certs/cert.pem"
+key_path="--keyfile /certs/key.pem"
 export GIT_REPO_URL='https://github.ibm.com/PrivateCloud-analytics/zen-vault-bridge-sdk'
 export ERROR_DOC_PATH='/blob/main/docs/apidoc/error_codes.md'
 
@@ -12,4 +11,4 @@ if [ ! -z "$TLS_CERTITICATE_FILE_PATH" ] && [ ! -z "$TLS_KEY_FILE_PATH" ]; then
 fi
 
 cd ./vault_sdk 
-gunicorn $key_path $cert_path --bind 0.0.0.0:8080 wsgi:app
+gunicorn $key_path $cert_path --bind 0.0.0.0:8443 wsgi:app
