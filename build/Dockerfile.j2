@@ -10,7 +10,7 @@ RUN yum -y update \
     && yum -y clean all
 
 # install required python packages
-RUN python3 -m pip install -I Flask==2.3.2 gunicorn==21.2.0 requests==2.31.0
+RUN python3 -m pip install -I Flask==2.3.2 gunicorn==21.2.0 requests==2.31.0 pyjwt[crypto]==2.8.0
 
 COPY /vault_sdk /vault_sdk
 COPY /scripts /scripts
