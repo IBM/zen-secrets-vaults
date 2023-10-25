@@ -15,4 +15,4 @@
 3. Define the following extensions:
     - Vault - This includes vault connection and access information
     - Secret - This includes supported secret types and secret identifier
-4. Develop a bridge using vault bridge SDK by implementing the API with [this specification](/swagger/api.yaml).
+4. Develop a bridge using vault bridge SDK by implementing the API with [this specification](/docs/api.yaml).
