@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: ibm-zen-vault-bridge-svc
+  name: ibm-zen-vault-bridge-svc
+spec:
+  ports:
+  - port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    component: ibm-zen-vault-bridge
+  type: ClusterIP
