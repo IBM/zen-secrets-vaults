@@ -111,5 +111,4 @@ The following diagram shows vault bridge SDK components. Some of the components 
 
 1. [Bridge installation](/docs/01_installation/bridge_installation.md)
 2. [Configuring vault integration](/docs/02_configuration/configure_vault_integration.md)
-3. [Developing bridge using SDK](/docs/03_developer_resources/develop_new_bridge.md)
 
