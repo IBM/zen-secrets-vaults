@@ -18,7 +18,8 @@ spec:
         runAsNonRoot: true
       containers:
       - name: ibm-zen-vault-bridge-container
-        image: <ibm-zen-vault-bridge-docker-image-tag>
+        image: cp.stg.icr.io/cp/cpd/zen-vault-bridge:latest
+        # image: icr.io/cpopen/cpfs/zen-vault-bridge:latest
         imagePullPolicy: IfNotPresent
         command:
           - /scripts/start_server.sh

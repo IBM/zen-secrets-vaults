@@ -68,11 +68,15 @@ The following diagram shows vault bridge SDK components. Some of the components 
 
 #### [2.2.1] Platform components
 
-1. Platform Core API
+1. Platform user interface
+
+    Users with an appropriate vault role can manage vaults and secrets in the Cloud Pak for Data web client. The `vault bridge SDK UI framework` dynamically generates a user interface for a vault bridge by using the information in the vault bridge extension.
+
+2. Platform Core API
 
     The Platform Core API receives a GET /v2/secrets/{secret-urn} request from Cloud Pak for Data consumers (such as services, the web client user interface, and so on). Using a secret urn (also known as secret identifier) it routes that request to the appropriate vault bridge. In the case of the bridge created using `vault bridge SDK` it delegates a request to the bridge server.
 
-2. Extensions
+3. Extensions
 
     The vault and secret extensions dynamically plugs in the vault bridge into the `Cloud Pak for Data Platform`. These extensions define characteristics of the bridge using the following information. The UI framework dynamically generates a user interface by using the information in the extension.  
     1. Vault extension
@@ -82,7 +86,7 @@ The following diagram shows vault bridge SDK components. Some of the components 
     2. Secret extension
         - Secret identifier
 
-3. JWT private key
+4. JWT private key
 
     The vault bridge SDK is secured using JSON Web Token(JWT). The `Platform Core API` generates JWT using a private key and attaches JWT to every request sent to the vault bridge server.
 
@@ -111,4 +115,5 @@ The following diagram shows vault bridge SDK components. Some of the components 
 
 1. [Bridge installation](/docs/01_installation/bridge_installation.md)
 2. [Configuring vault integration](/docs/02_configuration/configure_vault_integration.md)
+3. [Cloud Pak for Data API documentation](https://cloud.ibm.com/apidocs/cloud-pak-data/cloud-pak-data-4.8.0#managing-secrets-and-vaults)
 
