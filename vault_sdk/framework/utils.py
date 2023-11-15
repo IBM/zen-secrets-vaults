@@ -27,7 +27,7 @@ VAULT_REQUEST_TIMEOUT = int(os.environ.get('VAULT_REQUEST_TIMEOUT', 20))
 VAULT_REQUEST_RETRY_COUNT = int(os.environ.get('VAULT_REQUEST_RETRY_COUNT', 5))
 VAULT_REQUEST_RETRY_BACKOFF_FACTOR = 0.5
 
-GIT_REPO_URL = os.environ.get('GIT_REPO_URL', "https://github.com/IBM/zen-vault-bridge-sdk")
+GIT_REPO_URL = os.environ.get('GIT_REPO_URL', "https://github.com/IBM/zen-secrets-vaults")
 ERROR_DOC_PATH = os.environ.get('ERROR_DOC_PATH', "/blob/main/docs/apidoc/error_codes.md")
 
 
