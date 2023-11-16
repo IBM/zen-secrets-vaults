@@ -65,7 +65,7 @@ To connect to an external vault through vault bridge:
     AWS Secrets Manager
     Field | Details
     ------|--------
-    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port.
+    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port. If the bridge is running as a Kubernetes deployment on the same cluster, use https://ibm-zen-vault-bridge-svc.
     Vault URL | The fully qualified URL of the vault that you want to connect to. The URL must have the following format: http://vault-location.example.com:port.
     Access Key ID | Key ID used for API authorization, it is part key ID and secret set and long-term security credential.
     Secret Access Key | Secret used for API authorization, it is part key ID and secret set and long-term security credential.
@@ -73,7 +73,7 @@ To connect to an external vault through vault bridge:
     Azure Key Vault
     Field | Details
     ------|--------
-    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port.
+    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port. If the bridge is running as a Kubernetes deployment on the same cluster, use https://ibm-zen-vault-bridge-svc.
     Vault URL | The fully qualified URL of the vault that you want to connect to. The URL must have the following format: http://vault-location.example.com:port.
     Tenant ID | The directory tenant the application plans to operate against, in GUID or domain-name format.
     Client ID | The application ID that's assigned to your app. You can find this information in the portal where you registered your app.
@@ -82,7 +82,7 @@ To connect to an external vault through vault bridge:
     IBM Secrets Manager
     Field | Details
     ------|--------
-    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port.
+    Bridge URL | The fully qualified URL of the bridge. The URL must have the following format: http://bridge-location.example.com:port. If the bridge is running as a Kubernetes deployment on the same cluster, use https://ibm-zen-vault-bridge-svc.
     Vault URL | The fully qualified URL of the vault that you want to connect to. The URL must have the following format: http://vault-location.example.com:port.
     API Key | Key for API authorization, this is created from IBM Cloud console.
 
