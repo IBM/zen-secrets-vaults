@@ -1,4 +1,4 @@
-# zen-vault-bridge-sdk
+# zen-secrets-vaults
 
 ## [1] Overview of secrets and vaults
 A secret contains sensitive data. You can use secrets to store a variety of information, such as:
