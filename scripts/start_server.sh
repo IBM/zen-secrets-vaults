@@ -7,8 +7,8 @@ key_path="--keyfile /certs/key.pem"
 # export GIT_REPO_URL='https://github.com/IBM/zen-secrets-vaults'
 # export ERROR_DOC_PATH='/blob/main/docs/apidoc/error_codes.md'
 
-if [ ! -z "$TLS_CERTITICATE_FILE_PATH" ] && [ ! -z "$TLS_KEY_FILE_PATH" ]; then
-    cert_path="--certfile $TLS_CERTITICATE_FILE_PATH"
+if [ ! -z "$TLS_CERTIFICATE_FILE_PATH" ] && [ ! -z "$TLS_KEY_FILE_PATH" ]; then
+    cert_path="--certfile $TLS_CERTIFICATE_FILE_PATH"
     key_path="--keyfile $TLS_KEY_FILE_PATH"
 fi
 
