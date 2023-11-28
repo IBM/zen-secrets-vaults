@@ -26,7 +26,7 @@ spec:
         env:
         - name: JWT_PUBLIC_KEY_PATH
           value: "/certs/jwt/public.pem"
-        - name: TLS_CERTITICATE_FILE_PATH
+        - name: TLS_CERTIFICATE_FILE_PATH
           value: "/certs/tls.crt"
         - name: TLS_KEY_FILE_PATH
           value: "/certs/tls.key"
