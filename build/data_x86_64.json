@@ -1,0 +1,9 @@
+{
+    "bridgeutils":{
+      "namespace":"registry.access.redhat.com/ubi8",
+      "base_image":"ubi",
+      "tag":"latest",
+      "arch":"x86_64",
+      "node_arch":"x64"
+    }
+}

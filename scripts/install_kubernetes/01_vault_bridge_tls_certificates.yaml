@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ibm-zen-vault-bridge-server
+spec:
+  secretName: ibm-zen-vault-bridge-server
+  secretTemplate:
+    labels:
+      app.kubernetes.io/instance: ibm-zen-vault-bridge-server
+      app.kubernetes.io/managed-by: ibm-zen-vault-bridge-svc
+      app.kubernetes.io/name: ibm-zen-vault-bridge-server
+  issuerRef:
+    name: zen-tls-issuer
+    kind:  Issuer
+  duration: 2160h0m0s
+  renewBefore: 720h0m0s
+  commonName: ibm-zen-vault-bridge-svc

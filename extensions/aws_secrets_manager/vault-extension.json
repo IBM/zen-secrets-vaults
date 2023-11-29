@@ -1,0 +1,82 @@
+{
+    "extension_point_id": "zen_vault_type_config",
+    "extension_name": "aws-secrets-manager",
+    "display_name": "AWS Secrets Manager",
+    "meta": {},
+    "details": {
+        "category": "bridge",
+        "supported_secret_types": [
+            {
+                "secret_type": "credentials",
+                "label": "Username and password"
+            },
+            {
+                "secret_type": "key",
+                "label": "Key"
+            },
+            {
+                "secret_type": "generic",
+                "label": "Custom"
+            },
+            {
+                "secret_type": "token",
+                "label": "Token"
+            },
+            {
+                "secret_type": "certificate",
+                "label": "SSL certificate"
+            }
+        ],
+        "label": "AWS Secrets Manager",
+        "description": "AWS Secrets Manager",
+        "json_schema": {
+            "type": "object",
+            "required": [
+                "bridge_url",
+                "vault_url",
+                "access_key_id",
+                "secret_access_key"
+            ],
+            "optional": [],
+            "credentials": [
+                "access_key_id",
+                "secret_access_key"
+            ],
+            "properties": {
+                "bridge_url": {
+                    "type": "string",
+                    "label": "Bridge URL",
+                    "placeholder": "Vault bridge URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 1
+                },
+                "vault_url": {
+                    "type": "string",
+                    "label": "Vault URL",
+                    "placeholder": "AWS Secrets Manager URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 2
+                },
+                "access_key_id": {
+                    "type": "string",
+                    "label": "Access key ID",
+                    "placeholder": "AWS access key ID",
+                    "UIcomponent": "TextArea",
+                    "alignment": "authentication_section",
+                    "sequence": 1
+                },
+                "secret_access_key": {
+                    "type": "string",
+                    "label": "Secret access key",
+                    "placeholder": "AWS Secret access key",
+                    "UIcomponent": "TextArea",
+                    "password": true,
+                    "alignment": "authentication_section",
+                    "sequence": 2
+                }
+            }
+        }
+    }
+}

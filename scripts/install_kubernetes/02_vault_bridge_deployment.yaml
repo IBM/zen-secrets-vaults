@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "ibm-zen-vault-bridge"
+  labels:
+    component: "ibm-zen-vault-bridge"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      component: "ibm-zen-vault-bridge"
+  template:
+    metadata:
+      labels:
+        component: "ibm-zen-vault-bridge"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: ibm-zen-vault-bridge-container
+        # image: cp.stg.icr.io/cp/cpd/zen-vault-bridge:latest
+        image: icr.io/cpopen/cpd/zen-vault-bridge:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - /scripts/start_server.sh
+        env:
+        - name: JWT_PUBLIC_KEY_PATH
+          value: "/certs/jwt/public.pem"
+        - name: TLS_CERTIFICATE_FILE_PATH
+          value: "/certs/tls.crt"
+        - name: TLS_KEY_FILE_PATH
+          value: "/certs/tls.key"
+        - name: GIT_REPO_URL
+          value: "https://github.com/IBM/zen-secrets-vaults"  
+        - name: ERROR_DOC_PATH
+          value: "/blob/main/docs/apidoc/error_codes.md"  
+        volumeMounts:
+        - mountPath: /certs
+          name: ibm-zen-vault-bridge-server
+        - mountPath: /certs/jwt
+          name: ibm-zen-vault-sdk-jwt
+      volumes:
+      - name: ibm-zen-vault-bridge-server
+        secret:
+          defaultMode: 420
+          secretName: ibm-zen-vault-bridge-server
+      - name: ibm-zen-vault-sdk-jwt
+        secret:
+          defaultMode: 420
+          secretName: ibm-zen-vault-sdk-jwt
