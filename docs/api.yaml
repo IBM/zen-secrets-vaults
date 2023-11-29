@@ -1,0 +1,365 @@
+swagger: '2.0'
+info:
+  contact:
+    email: zen-secrets-support@ibm.com
+    name: Zen vault bridge SDK support
+    url: https://www.ibm.com/support
+  description: This is API spec for a bridge that integrate CloudPak Zen secrets with vault such as IBM Secrets Manager, AWS Secrets Manager, Azure KV vault,
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Zen Vault Bridge API Spec
+  version: "1.0"
+schemes:
+- https
+paths:
+  /v2/health:
+    get:
+      description: Bridge health check
+      summary: Checks if bridge is alive
+      tags:
+      - healthcheck
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Health check is OK
+          schema:
+            $ref: '#/definitions/healthStatusResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  /v2/vault-bridges/{vault_type}/secrets/{secret_urn}:
+    get:
+      summary: Get secret details from a vault using provided meta information
+      tags:
+      - vault-bridge  
+      description: This API retrieves secret from a vault and returned canonical response.
+      parameters:
+      - in: header
+        name: Vault-Auth
+        description: >
+          Vault connection information, semicolon separated name value pair
+          example IAM_HOST=iam.provider.com;VAULT_HOST=vault-provider.com;API_KEY=zqekehskjowhds.        
+        required: true
+        type: string
+      - in: header
+        name: IBM-CPD-Transaction-ID
+        description: Transaction ID for end-to-end tracking
+        type: string
+        required: true
+      - in: path
+        description: > 
+          vault type such as ibm-secrets-manager | aws-secrets-manager | azure-kv-vault
+        name: vault_type
+        required: true
+        type: string
+      - in: path
+        description: CloudPak secret identifier (urn)
+        name: secret_urn
+        required: true
+        type: string
+      - in: query
+        description: > 
+          CloudPak secret type (Note this may differ from vault secret type and not 
+          all type supported by vault)
+        name: secret_type
+        required: true
+        type: string
+        enum: ['credentials','certificates','generic','key','token']
+      - in: query
+        description: >
+          Base64 encoded JSON of Extra information to retrieve the secret
+        name: secret_reference_metadata
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns secret details.
+          schema:
+            $ref: '#/definitions/secretDeatilsResponse'
+          examples:
+            credentials_res:
+              {
+                "secret": {
+                        "credentials": {
+                            "username": "aaa",
+                            "password": "bbb"
+                        }
+                    }
+              }
+            certificates_res:
+              {
+                  "secret": {
+                      "certificate": {
+                          "cert": "<Certificate>",
+                          "key": "<Optional - Private key>"
+                      } 
+                  }
+              }
+            generic_res:
+              {
+                "secret": {
+                  "generic": {
+                    "my_secret" : "VugP1PCcPyX6cbvfHYFQmnY0KJyR7w4aosjGpeDY8uY3mokfkXcy0hBvJbm9FRSQ"
+                    }
+                }
+              }
+            key_res:
+              {
+                "secret": {
+                  "key": "VugP1PCcPyX6cbvfHYFQmnY0KJyR7w4aosjGpeDY8uY3mokfkXcy0hBvJbm9FRSQ"
+                }
+              }
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            invalid_apikey:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_sec_e_1000",
+                    "message": "Provided API key could not be found.",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                    "target": {
+                      "name": "Vault-Auth",
+                      "type": "header"
+                    }
+                  }
+                ],
+                "status_code": 400,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOZ"
+              }            
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            invalid_secret_id:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_request_e_1000",
+                    "message": "Request validation error: Invalid parameter 'id' in path [secrets-manager.01002E]",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                    "target": {
+                      "name": "secret_reference_metadata",
+                      "type": "parameter"
+                    }
+                  }
+                ],
+                "status_code": 400,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOX"
+              }            
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            iam_connection_error:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_request_e_9000",
+                    "message": "Error while establishing connection with Vault providers IAM",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                  }
+                ],
+                "status_code": 500,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOY"
+              }            
+  /v2/vault-bridges/{vault_type}/secrets/bulk:
+    get:
+      summary: Get details of multiple secrets from a vault using provided meta information.
+      tags:
+      - vault-bridge
+      description: This API retrieves secret from a vault and returned canonical response.
+      parameters:
+      - in: header
+        name: Vault-Auth
+        description: >
+          Vault connection information, semicolon separated name value pair
+          example IAM_HOST=iam.provider.com;VAULT_HOST=vault-provider.com;API_KEY=zqekehskjowhds.        
+        required: true
+        type: string
+      - in: header
+        name: IBM-CPD-Transaction-ID
+        description: Transaction ID for end-to-end tracking
+        type: string
+        required: true
+      - in: path
+        description: > 
+          vault type such as ibm-secrets-manager | aws-secrets-manager | azure-kv-vault
+        name: vault_type
+        required: true
+        type: string
+      - in: query
+        description: >
+          Base64 encoded JSON of Extra information to retrieve the secret
+        name: secret_reference_metadata
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns secrets details for multiple secret.
+          schema:
+            $ref: '#/definitions/bulkGetSecretsResponse'
+          examples:
+            bulk_res:
+              [
+                {
+                  "secret_urn": "10003304840:Postgresdb-secret",
+                  "secret": {
+                          "credentials": {
+                              "username": "aaa",
+                              "password": "bbb"
+                          }
+                      }
+                },
+                {
+                  "secret_urn": "10003304840:objectstorage-secret",
+                  "secret": {
+                          "generic": {
+                              "access_key": "ccc",
+                              "secret_key": "ddd"
+                          }
+                      }
+                }
+              ]
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            invalid_apikey:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_sec_e_1000",
+                    "message": "Provided API key could not be found.",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                    "target": {
+                      "name": "Vault-Auth",
+                      "type": "header"
+                    }
+                  }
+                ],
+                "status_code": 400,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOZ"
+              }            
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            invalid_secret_id:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_request_e_1000",
+                    "message": "Request validation error: Invalid parameter 'id' in path [secrets-manager.01002E]",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                    "target": {
+                      "name": "secret_reference_metadata",
+                      "type": "parameter"
+                    }
+                  }
+                ],
+                "status_code": 400,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOX"
+              }            
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+          examples:
+            iam_connection_error:
+              {
+                "errors": [
+                  {
+                    "code": "vault_bridge_request_e_9000",
+                    "message": "Error while establishing connection with Vault providers IAM",
+                    "more_info": "https://github.com/IBM/zen-vault-bridge-sdk/apidoc",
+                  }
+                ],
+                "status_code": 500,
+                "trace": "30EOPWELW-WRNEWQROIP-SLKHJZSOY"
+              }            
+definitions:
+  errorTarget:
+    type: object
+    properties:
+      name:
+        description: Name of the target model
+        type: string
+      type:
+        description: Type of target model which caused the error
+        type: string
+        enum:
+        - field
+        - parameter
+        - header    
+  errorObject:
+    type: object
+    properties:
+      code:
+        description: snake case string which identify the problem
+        type: string
+        enum:
+        - vault_bridge_sec_e_1000
+      message:
+        description: developer-oriented explanation
+        type: string
+      more_info:
+        description: Publicly-accessible URL which tells error information
+        type: string
+      target:
+        $ref: '#/definitions/errorTarget'    
+  errorResponse:
+    type: object
+    properties:
+      errors:
+        description: Collection of errors
+        type: array
+        items:
+          $ref: '#/definitions/errorObject'
+      status_code:
+        description: http error code
+        type: integer
+        format: int32
+      trace:
+        description: UUID identifying request
+        type: string
+  healthStatusResponse:
+    description: health check message
+    properties:
+      status:
+        type: string
+        enum: 
+          - SUCCESS
+          - FAILED
+    type: object
+  secretDeatilsResponse:
+    properties:
+      secret:
+        type: object
+    type: object
+  secretDeatilsWithUrn:
+    properties:
+      secret:
+        type: object
+      secret_urn:
+        description: CloudPak secret identifier (URN)
+        type: string
+    type: object
+  bulkGetSecretsResponse:
+    type: array
+    items:
+      $ref: '#/definitions/secretDeatilsWithUrn'

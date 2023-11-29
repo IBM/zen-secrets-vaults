@@ -1,0 +1,8 @@
+{
+    "bridgeutils":{
+      "namespace":"registry.access.redhat.com/ubi8",
+      "base_image":"ubi",
+      "tag":"latest",
+      "arch":"s390x"
+    }
+}

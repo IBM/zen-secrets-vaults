@@ -1,0 +1,68 @@
+{
+    "extension_point_id": "zen_vault_type_config",
+    "extension_name": "ibm-cloud-secrets-manager",
+    "display_name": "IBM Cloud Secrets Manager",
+    "meta": {},
+    "details": {
+        "category": "bridge",
+        "supported_secret_types": [
+            {
+                "secret_type": "credentials",
+                "label": "Username and password"
+            },
+            {
+                "secret_type": "key",
+                "label": "Key"
+            },
+            {
+                "secret_type": "generic",
+                "label": "Custom"
+            },
+            {
+                "secret_type": "certificate",
+                "label": "SSL certificate"
+            }
+        ],
+        "label": "IBM Cloud Secrets Manager",
+        "description": "This Bridge integrates Cloud Pak with IBM Cloud Secrets Manager",
+        "json_schema": {
+            "type": "object",
+            "required": [
+                "bridge_url",
+                "vault_url",
+                "api_key"
+            ],
+            "optional": [],
+            "credentials": [
+                "api_key"
+            ],
+            "properties": {
+                "bridge_url": {
+                    "type": "string",
+                    "label": "Bridge URL",
+                    "placeholder": "Vault bridge URL",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 2
+                },
+                "vault_url": {
+                    "type": "string",
+                    "label": "Vault URL",
+                    "placeholder": "IBM Cloud Secrets Manager host address",
+                    "UIcomponent": "TextArea",
+                    "alignment": "details_section",
+                    "sequence": 3
+                },
+                "api_key": {
+                    "type": "string",
+                    "label": "API key",
+                    "placeholder": "IBM Cloud API key",
+                    "UIcomponent": "TextArea",
+                    "password": true,
+                    "alignment": "authentication_section",
+                    "sequence": 1
+                }
+            }
+        }
+    }
+}
