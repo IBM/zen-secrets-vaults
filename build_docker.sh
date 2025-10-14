@@ -7,9 +7,57 @@ IMAGE_BUILD_OPTS="--build-arg VCS_REF=${GIT_COMMIT_ID} --build-arg VCS_URL=${GIT
 set -e
 set -x
 
-scriptdir=`dirname ${0}`
-. ${scriptdir}/../devtest-helpers/utils/common.sh
+export ARCH=`uname -m`
+install_required_tools()
+{
+        if ! [ -x "$(command -v pip)" ]
+        then
+          echo "python and python-pip are required. Please install them"
+          exit 1
+        else
+          python3 -m pip install --user virtualenv
+          rm -rf venv
+          python3 -m venv env
+          source env/bin/activate
+          pip install jinja2-cli
+        fi
+}
 
+generate_files_from_template()
+{
+        echo "generating files for $ARCH architecture"
+        project_path=$1
+        path_to_list=${project_path}/templates_list.txt
+
+        if [ -f ${path_to_list} ]
+        then
+          # Install jinja2-cli package if not present on the machine as the template script requires jinja2-cli
+          # to be present.
+          install_required_tools
+          while read template_file
+          do
+            generate_file_from_template  ${project_path}/${template_file} ${project_path}
+          done < ${path_to_list}
+        else
+          echo "templates_list.txt file is not found in ${project_path}"
+        fi
+}
+
+generate_file_from_template()
+{
+         path_to_template=$1
+         path_to_data=$2
+
+         if [ -f ${path_to_template} ]
+         then
+          jinja2 ${path_to_template} ${path_to_data}/data_$ARCH.json > ${path_to_template%.j2}
+          echo "${path_to_template%.j2} was generated for $ARCH architecture"
+        else
+          echo "${path_to_template} is not found"
+        fi
+}
+
+scriptdir=`dirname ${0}`
 cd ${scriptdir}
 fullpath=$(pwd)
 dockerfiledir=${scriptdir}/build
